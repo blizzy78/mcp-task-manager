@@ -1,0 +1,46 @@
+{
+  "name": "@blizzy/mcp-task-manager",
+  "version": "0.1.0",
+  "description": "Task Manager MCP server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blizzy78/mcp-task-manager.git"
+  },
+  "author": {
+    "name": "Maik Schreiber",
+    "email": "blizzy@blizzy.de"
+  },
+  "homepage": "https://github.com/blizzy78/mcp-task-manager",
+  "bugs": "https://github.com/blizzy78/mcp-task-manager/issues",
+  "type": "module",
+  "bin": {
+    "mcp-task-manager": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/index.js",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "start:sse": "node dist/sse.js",
+    "start:streamableHttp": "node dist/streamableHttp.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.17.0",
+    "express": "5.1.0",
+    "zod": "3.24.1",
+    "zod-to-json-schema": "3.24.6"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@vitest/coverage-v8": "3.2.4",
+    "shx": "0.4.0",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  }
+}
