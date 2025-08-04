@@ -1,8 +1,8 @@
-# MCP Task Manager
+# Task Manager MCP Server
 
 ## What the Project is About
 
-The MCP Task Manager is a TypeScript-based Model Context Protocol (MCP) server that provides sophisticated task management capabilities for AI agents and automation systems. This project implements an MCP server that exposes three core tools for structured task orchestration: task registration, task assessment, and task status management.
+The Task Manager MCP Server is a TypeScript-based Model Context Protocol (MCP) server that provides sophisticated task management capabilities for AI agents and automation systems. This project implements an MCP server that exposes three core tools for structured task orchestration: task registration, task assessment, and task status management.
 
 The primary purpose of this project is to enable AI agents and other MCP clients to:
 
@@ -18,7 +18,7 @@ The project is designed to be consumed by AI agents that need structured task ma
 
 ### Core Architecture Pattern
 
-The MCP Task Manager follows a **plugin-based tool architecture** built on the Model Context Protocol (MCP) SDK. The architecture is designed around three main components:
+The Task Manager MCP Server follows a **plugin-based tool architecture** built on the Model Context Protocol (MCP) SDK. The architecture is designed around three main components:
 
 #### 1. Server Infrastructure Layer
 - **Entry Point Dispatcher** (`index.ts`): Routes between different server modes based on command-line arguments
