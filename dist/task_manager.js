@@ -3,7 +3,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { toolHandlers, tools } from './tools/index.js';
 export function createServer() {
     const server = new Server({
-        name: 'mcp-task-manager',
+        name: 'task-manager',
         title: 'Task Manager',
         version: '0.1.0',
     }, {

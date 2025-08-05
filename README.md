@@ -5,50 +5,70 @@ This MCP server allows agents to manage tasks, including registering tasks, asse
 
 ## Tools
 
-1. `register_task`
-   - A tool to register a new task that must be performed
+1. `create_task`
+   - A tool to create a new task that must be completed
    - Inputs:
-     - `taskId` (string): The unique identifier for this task
      - `title` (string): A concise title for this task
      - `description` (string): A detailed description of this task
      - `goal` (string): The overall goal of this task
-     - `parentTaskId` (string, optional): The identifier of the parent task this task belongs to, if applicable. Must be provided if this task is a subtask of another task
-     - `dependsOnCompletedTaskIds` (array of strings, optional): A list of task identifiers this task depends on. Must be provided if this task can't be started before all of the dependent tasks are complete
-   - Returns: Task registration confirmation with task ID, current status ("not-started"), parent task ID, dependencies, and assessment requirement
+     - `parentTaskID` (string, optional): The identifier of the parent task this task belongs to, if applicable. Must be provided if this task is a subtask of another task
+     - `dependentTaskIDs` (array of strings, optional): A list of task identifiers this task depends on, if applicable. Must be provided if this task can't be started before all of the dependent tasks are complete
+     - `uncertaintyAreas` (array of objects): A detailed list of areas where there is uncertainty about the task requirements or execution, each containing:
+       - `description` (string): A description of this uncertainty area
+       - `status` (enum): The research status of this uncertainty area ("open" or "resolved")
+       - `resolution` (string, optional): A detailed description of the outcome of the research for this uncertainty area (must be provided if status is "resolved")
+   - Returns: Task creation confirmation with task ID, current status ("not-started"), parent task ID, and dependencies
 
-2. `assess_task`
-   - A tool to assess the complexity and structure of a task (can only be assessed if it hasn't been started yet)
+2. `update_task`
+   - A tool to update an existing task
    - Inputs:
-     - `taskId` (string): The unique identifier for this task
-     - `parentTaskId` (string, optional): The identifier of the parent task this task belongs to, if applicable
-     - `currentStatus` (enum): The current status of the task (must be "not-started")
-     - `complexityAssessment` (string): A detailed assessment of this task's complexity, describing if it can be performed all at once or requires multiple discrete subtasks
-     - `complexityAssessmentOutcomeSubtasks` (array of objects, optional): A list of discrete subtasks that must be performed to complete this task, each containing:
-       - `taskId` (string): A unique identifier for this subtask
-       - `title` (string): A concise title for this subtask
-       - `description` (string): A detailed description of this subtask
-       - `goal` (string): The overall goal of this subtask
-       - `missingKnowledge` (array of objects, optional): A list of specific knowledge or information that is missing and must be researched, each containing:
-         - `knowledgeId` (string): The unique identifier for this knowledge
-         - `title` (string): A concise title for this knowledge
-         - `description` (string): A detailed description of this knowledge
-   - Returns: Assessment confirmation with assessment ID, task ID, parent task ID, and list of tasks that need registration (including knowledge acquisition tasks)
+     - `taskID` (string): The identifier of this task
+     - `dependsOnTasks` (array of objects, optional): A list of tasks this task depends on. Must be provided if this task can't be started before the dependent tasks are complete, each containing:
+       - `taskID` (string): The identifier of the dependent task
+       - `currentStatus` (enum): The current status of the dependent task
+     - `uncertaintyAreas` (array of objects): A detailed list of areas where there is uncertainty about the task requirements or execution, each containing:
+       - `description` (string): A description of this uncertainty area
+       - `status` (enum): The research status of this uncertainty area ("open" or "resolved")
+       - `resolution` (string, optional): A detailed description of the outcome of the research for this uncertainty area (must be provided if status is "resolved")
+   - Returns: Update confirmation for the specified task
 
-3. `task_status`
-   - A tool to update the status of a task (must be used when beginning and completing tasks)
+3. `transition_task_status`
+   - A tool to transition the status of a task
    - Inputs:
-     - `taskId` (string): The unique identifier of this task
-     - `assessmentId` (string): The unique identifier of the complexity and structure assessment for this task (must be acquired using 'assess_task' before starting)
-     - `currentStatus` (enum): The current status - "not-started", "in-progress", or "complete"
-     - `parentTask` (object, optional): Details about the parent task, containing:
-       - `taskId` (string): The unique identifier of the parent task
+     - `taskID` (string): The identifier of this task
+     - `title` (string): The title of this task
+     - `transition` (object): The desired status transition for this task, containing:
+       - `oldStatus` (enum): The old status of this task ("not-started", "in-progress", or "complete")
+       - `newStatus` (enum): The new status of this task ("not-started", "in-progress", or "complete")
+     - `parentTask` (object, optional): Details about the parent task this task belongs to, if applicable, containing:
+       - `taskID` (string): The identifier of the parent task
        - `currentStatus` (enum): The current status of the parent task
      - `dependsOnTasks` (array of objects, optional): A list of tasks this task depends on, each containing:
-       - `taskId` (string): The unique identifier of the dependent task
+       - `taskID` (string): The identifier of the dependent task
        - `currentStatus` (enum): The current status of the dependent task
-     - `outcomeDetails` (string, optional): Details about the outcome of this task (required if status is complete)
-     - `recommendedNextTaskId` (string, optional): The identifier of the next recommended task to perform after this one (only allowed if status is complete)
-   - Returns: Status update confirmation with current task state including all provided parameters
+     - `uncertaintyAreasRemaining` (boolean): Whether areas of uncertainty remain for this task. Tasks may not transition to 'in-progress' until this is false
+     - `outcomeDetails` (string, optional): Details about the outcome of this task (must be provided if transition.newStatus is 'complete')
+     - `recommendedNextTaskID` (string, optional): The identifier of the next task recommended to perform after this one (must be provided if transition.newStatus is 'complete')
+   - Returns: Status transition confirmation with recommended next task ID if applicable
+
+
+## Recommended Agent Prompt Snippet
+
+```
+# Task Management Tools
+
+You must use the following tools to manage and organize your tasks. This is essential for effective task tracking, prioritization, and ensuring that all steps are completed in the correct order. Using these tools will help you maintain clear oversight of your work and dependencies throughout the process.
+
+- Use the 'create_task' tool to create any new tasks that need to be performed later.
+- Use the 'update_task' tool to update a task, such as adding dependent tasks.
+- Use the 'transition_task_status' tool to transition the status of a task. You must always use this tool before you begin a task, and when you've completed a task.
+
+No work may ever be performed without using the Task Manangement Tools to structure the process.
+
+IMPORTANT: No task may ever be performed without making sure that all uncertainty areas are resolved BEFORE starting the task. If necessary, create new dependent tasks to acquire the information.
+
+Pay attention that tasks can depend on each other. You may need to perform them in a specific order. Always check the dependencies of a task before performing it, and complete the dependent tasks first.
+```
 
 
 ## Usage with Claude Desktop (uses [stdio Transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#stdio))

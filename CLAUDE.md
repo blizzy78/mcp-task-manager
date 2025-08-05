@@ -2,17 +2,17 @@
 
 ## What the Project is About
 
-The Task Manager MCP Server is a TypeScript-based Model Context Protocol (MCP) server that provides sophisticated task management capabilities for AI agents and automation systems. This project implements an MCP server that exposes three core tools for structured task orchestration: task registration, task assessment, and task status management.
+The Task Manager MCP Server is a TypeScript-based Model Context Protocol (MCP) server that provides task management capabilities for AI agents and automation systems. This project implements an MCP server that exposes three core tools for structured task orchestration: task creation, task updates, and task status management.
 
 The primary purpose of this project is to enable AI agents and other MCP clients to:
 
-- **Register and organize tasks** in hierarchical structures with dependencies
-- **Assess task complexity** and automatically break down complex tasks into manageable subtasks
+- **Create and organize tasks** in hierarchical structures with dependencies
+- **Update tasks** with dependency information and uncertainty area tracking
 - **Track task progression** through defined states (not-started, in-progress, complete)
-- **Manage knowledge requirements** by identifying and tracking missing information needed for task completion
-- **Orchestrate workflows** with proper dependency management and parent-child task relationships
+- **Manage knowledge requirements** by identifying and tracking uncertainty areas that need resolution before task execution
+- **Orchestrate workflows** with proper dependency validation and parent-child task relationships
 
-The project is designed to be consumed by AI agents that need structured task management capabilities, making it easier to handle complex, multi-step workflows in an organized and trackable manner.
+The project is designed to be used by AI agents that need structured task management capabilities, making it easier to handle complex, multi-step workflows in an organized and trackable manner.
 
 ## High Level View of the Architecture
 
@@ -31,9 +31,9 @@ The Task Manager MCP Server follows a **plugin-based tool architecture** built o
 #### 2. Tool Layer Architecture
 The core functionality is implemented as three discrete MCP tools in the `tools/` directory:
 
-- **`register_task`**: Creates new tasks with optional parent-child relationships and dependencies
-- **`assess_task`**: Analyzes task complexity and generates subtasks with knowledge requirements
-- **`task_status`**: Manages task lifecycle states with dependency validation
+- **`create_task`**: Creates new tasks with optional parent-child relationships and dependencies
+- **`update_task`**: Updates existing tasks with dependency information and uncertainty area tracking
+- **`transition_task_status`**: Manages task lifecycle states with dependency and parent task validation
 
 Each tool follows a consistent pattern:
 - **Schema Definition**: Zod schemas for input validation and JSON Schema generation
@@ -89,9 +89,9 @@ The project uses **Vitest** as the primary testing framework, configured for com
 The testing approach follows a **comprehensive unit testing strategy** with the following characteristics:
 
 1. **Tool-Centric Testing**: Each tool has its own dedicated test suite
-   - `register_task.test.ts`: Tests task registration scenarios
-   - `assess_task.test.ts`: Tests task complexity assessment
-   - `task_status.test.ts`: Tests task lifecycle management
+   - `create_task.test.ts`: Tests task creation scenarios with various configurations
+   - `update_task.test.ts`: Tests task update functionality
+   - `transition_task_status.test.ts`: Tests task lifecycle management and validation
 
 2. **Schema Validation Testing**: All test suites validate both input schemas and output structures
    - Input parameter validation
@@ -145,3 +145,25 @@ The testing approach follows a **comprehensive unit testing strategy** with the 
    - Maintainable test structure for future extensions
 
 The testing procedures ensure that all tool functionality is thoroughly validated, error conditions are properly handled, and the MCP protocol compliance is maintained across all features.
+
+## Task Management Rules
+
+1. **Task Creation**: All tasks start with "not-started" status
+2. **Dependency Validation**: Tasks cannot start until all dependent tasks are complete
+3. **Parent Task Rules**: Child tasks cannot start until parent task is "in-progress"
+4. **Uncertainty Areas**: Tasks cannot transition to "in-progress" until all uncertainty areas are resolved
+5. **Completion Requirements**: Tasks transitioning to "complete" must provide outcome details
+6. **Task Identification**: Task IDs are generated using MD5 hash of the task title and description
+
+## Installation and Usage
+
+### Build and Development
+- **Package Manager**: pnpm
+- **TypeScript**: Full TypeScript implementation with strict type checking
+- **Build Process**: `pnpm build` - Compiles TypeScript and makes executable
+- **Testing**: `pnpm test` - Runs Vitest test suite
+- **Coverage**: `pnpm test:coverage` - Runs tests with coverage reporting
+
+### Integration
+
+The server follows the Model Context Protocol specification and can be integrated with any MCP-compatible client. The server supports multiple transport modes (STDIO, SSE, HTTP) and provides three core tools (`create_task`, `update_task`, `transition_task_status`) with identical functionality and validation across all transport modes.

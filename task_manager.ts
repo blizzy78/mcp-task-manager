@@ -7,7 +7,7 @@ export function createServer() {
     {
       name: 'task-manager',
       title: 'Task Manager',
-      version: '0.1.0',
+      version: '0.2.0',
     },
 
     {
