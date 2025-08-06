@@ -12,44 +12,31 @@ This MCP server allows agents to manage tasks, including registering tasks, asse
      - `description` (string): A detailed description of this task
      - `goal` (string): The overall goal of this task
      - `parentTaskID` (string, optional): The identifier of the parent task this task belongs to, if applicable. Must be provided if this task is a subtask of another task
-     - `dependentTaskIDs` (array of strings, optional): A list of task identifiers this task depends on, if applicable. Must be provided if this task can't be started before all of the dependent tasks are complete
+     - `dependentTaskIDs` (array of strings): A list of task identifiers this task depends on. Must be provided if this task can't be started before all of the dependent tasks are complete
      - `uncertaintyAreas` (array of objects): A detailed list of areas where there is uncertainty about the task requirements or execution, each containing:
        - `description` (string): A description of this uncertainty area
-       - `status` (enum): The research status of this uncertainty area ("open" or "resolved")
-       - `resolution` (string, optional): A detailed description of the outcome of the research for this uncertainty area (must be provided if status is "resolved")
-   - Returns: Task creation confirmation with task ID, current status ("not-started"), parent task ID, and dependencies
+   - Returns: Task creation confirmation with task ID, current status ("not-started"), and uncertainty areas
 
 2. `update_task`
    - A tool to update an existing task
    - Inputs:
      - `taskID` (string): The identifier of this task
-     - `dependsOnTasks` (array of objects, optional): A list of tasks this task depends on. Must be provided if this task can't be started before the dependent tasks are complete, each containing:
-       - `taskID` (string): The identifier of the dependent task
-       - `currentStatus` (enum): The current status of the dependent task
-     - `uncertaintyAreas` (array of objects): A detailed list of areas where there is uncertainty about the task requirements or execution, each containing:
+     - `dependentTaskIDs` (array of strings): A list of task identifiers this task depends on. Must be provided if this task can't be started before all of the dependent tasks are complete
+     - `uncertaintyAreas` (array of objects): A detailed list of areas where there is uncertainty about the task requirements or execution. Can be used to update existing areas or add new areas, each containing:
        - `description` (string): A description of this uncertainty area
-       - `status` (enum): The research status of this uncertainty area ("open" or "resolved")
-       - `resolution` (string, optional): A detailed description of the outcome of the research for this uncertainty area (must be provided if status is "resolved")
+       - `uncertaintyAreaID` (string, optional): The identifier of this uncertainty area. Must be provided if updating an existing area
+       - `status` (enum, optional): The research status of this uncertainty area ("unresolved" or "resolved"). Must be provided if updating an existing area
+       - `resolution` (string, optional): A detailed description of the outcome of the research for this uncertainty area. Must be provided if updating an existing area to status "resolved"
    - Returns: Update confirmation for the specified task
 
 3. `transition_task_status`
    - A tool to transition the status of a task
    - Inputs:
      - `taskID` (string): The identifier of this task
-     - `title` (string): The title of this task
-     - `transition` (object): The desired status transition for this task, containing:
-       - `oldStatus` (enum): The old status of this task ("not-started", "in-progress", or "complete")
-       - `newStatus` (enum): The new status of this task ("not-started", "in-progress", or "complete")
-     - `parentTask` (object, optional): Details about the parent task this task belongs to, if applicable, containing:
-       - `taskID` (string): The identifier of the parent task
-       - `currentStatus` (enum): The current status of the parent task
-     - `dependsOnTasks` (array of objects, optional): A list of tasks this task depends on, each containing:
-       - `taskID` (string): The identifier of the dependent task
-       - `currentStatus` (enum): The current status of the dependent task
-     - `uncertaintyAreasRemaining` (boolean): Whether areas of uncertainty remain for this task. Tasks may not transition to 'in-progress' until this is false
-     - `outcomeDetails` (string, optional): Details about the outcome of this task (must be provided if transition.newStatus is 'complete')
-     - `recommendedNextTaskID` (string, optional): The identifier of the next task recommended to perform after this one (must be provided if transition.newStatus is 'complete')
-   - Returns: Status transition confirmation with recommended next task ID if applicable
+     - `newStatus` (enum): The new status of this task ("not-started", "in-progress", or "complete")
+     - `outcomeDetails` (string, optional): Details about the outcome of this task. Must be provided if newStatus is "complete"
+     - `recommendedNextTaskID` (string, optional): The identifier of the next task recommended to perform after this one. Should be provided if newStatus is "complete", if applicable
+   - Returns: Status transition confirmation with task ID, current status, and recommended next task ID if applicable
 
 
 ## Recommended Agent Prompt Snippet

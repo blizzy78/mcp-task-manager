@@ -1,3 +1,5 @@
+import type { TaskDB } from './task_db.js'
+
 export type TextContent = {
   type: 'text'
   audience: Array<'user' | 'assistant'>
@@ -9,4 +11,4 @@ export type ToolResult = {
   structuredContent: any
 }
 
-export type ToolHandler = (args: any) => Promise<ToolResult>
+export type ToolHandler = (args: any, db: TaskDB) => Promise<ToolResult>

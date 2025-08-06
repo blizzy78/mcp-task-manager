@@ -1,13 +1,14 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { toolHandlers, tools } from './tools/index.js'
+import { TaskDB } from './tools/task_db.js'
 
 export function createServer() {
   const server = new Server(
     {
       name: 'task-manager',
       title: 'Task Manager',
-      version: '0.2.0',
+      version: '0.3.0',
     },
 
     {
@@ -21,6 +22,8 @@ export function createServer() {
     return { tools }
   })
 
+  const taskDB = new TaskDB()
+
   server.setRequestHandler(CallToolRequestSchema, async ({ params: { name, arguments: args } }) => {
     const toolHandler = toolHandlers[name as keyof typeof toolHandlers]
     if (!toolHandler) {
@@ -28,7 +31,7 @@ export function createServer() {
     }
 
     const parsedArgs = toolHandler.schema.parse(args)
-    return await toolHandler.handler(parsedArgs)
+    return await toolHandler.handler(parsedArgs, taskDB)
   })
 
   return { server, cleanup: () => {} }
