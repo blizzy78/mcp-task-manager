@@ -1,7 +1,12 @@
 # Task Manager MCP Server
 
-This MCP server allows agents to manage tasks, including registering tasks, assessing their complexity, breaking down into subtasks, and updating their status. It provides structured task management capabilities for agents working on complex multi-step problems.
+This MCP server allows agents to manage tasks, including creating tasks with uncertainty areas, updating task dependencies and uncertainty resolution, and transitioning task status through their lifecycle. It provides structured task management capabilities for agents working on complex multi-step problems:
 
+- **Create and organize tasks** in hierarchical structures with dependencies
+- **Update tasks** with dependency information and uncertainty area tracking
+- **Track task progression** through defined states (not-started, in-progress, complete)
+- **Manage uncertainty areas** by identifying and tracking areas that need resolution before task execution
+- **Orchestrate workflows** with proper dependency validation and parent-child task relationships
 
 ## Tools
 
