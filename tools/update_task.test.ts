@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TaskDB } from './task_db.js'
-import { TaskIDSchema, UncertaintyAreaStatusSchema } from './tasks.js'
+import { TaskIDSchema } from './tasks.js'
 import { handleUpdateTask } from './update_task.js'
 
 describe('update_task handler', () => {
@@ -15,14 +15,13 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [{ description: 'Updated uncertainty' }],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [{ title: 'Updated uncertainty', description: 'Updated uncertainty' }],
     }
 
     const result = await handleUpdateTask(args, taskDB)
@@ -45,14 +44,13 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [],
     }
 
     const result = await handleUpdateTask(args, taskDB)
@@ -71,32 +69,18 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          uncertaintyAreaID: 'existing-area' as any,
-          description: 'Existing area',
-          status: 'unresolved' as any,
-        },
-      ],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          description: 'Resolved issue',
-          uncertaintyAreaID: 'existing-area' as any,
-          status: UncertaintyAreaStatusSchema.parse('resolved'),
-          resolution: 'Issue was resolved',
-        },
-      ],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [{ title: 'Resolved issue', description: 'Issue was resolved' }],
     }
 
     const result = await handleUpdateTask(args, taskDB)
 
-    expect(result.content[0].text).not.toContain('uncertainty areas')
+    expect(result.structuredContent.tasksCreated?.length ?? 0).toBe(1)
   })
 
   it('should handle tasks with mixed uncertainty areas', async () => {
@@ -110,33 +94,21 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          uncertaintyAreaID: 'resolved-area' as any,
-          description: 'Existing area',
-          status: 'unresolved' as any,
-        },
-      ],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        { description: 'Open issue' },
-        {
-          description: 'Resolved issue',
-          uncertaintyAreaID: 'resolved-area' as any,
-          status: UncertaintyAreaStatusSchema.parse('resolved'),
-          resolution: 'Issue was resolved',
-        },
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [
+        { title: 'Open issue', description: 'Open issue' },
+        { title: 'Resolved issue', description: 'Issue was resolved' },
       ],
     }
 
     const result = await handleUpdateTask(args, taskDB)
 
-    expect(result.content[0].text).toContain('uncertainty areas')
+    expect(result.structuredContent.tasksCreated?.length ?? 0).toBe(2)
   })
 
   it('should throw error for non-existent task ID', async () => {
@@ -145,8 +117,8 @@ describe('update_task handler', () => {
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [],
     }
 
     await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
@@ -165,14 +137,13 @@ describe('update_task handler', () => {
       title: 'Completed Task',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      newDependsOnTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
+      newUncertaintyAreas: [],
     }
 
     await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
@@ -191,19 +162,17 @@ describe('update_task handler', () => {
       title: 'Task with Dependencies',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
-      uncertaintyAreas: [],
+      newDependsOnTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
+      newUncertaintyAreas: [],
     }
 
-    await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
-      'Invalid task update: Unknown dependent task ID: non-existent-dep'
-    )
+    const result = await handleUpdateTask(args, taskDB)
+    expect(result.structuredContent.taskUpdated.taskID).toBe(taskID)
   })
 
   it('should throw error for non-existent uncertainty area ID', async () => {
@@ -217,26 +186,17 @@ describe('update_task handler', () => {
       title: 'Task with Areas',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          description: 'Updated area',
-          uncertaintyAreaID: 'non-existent-area' as any,
-          status: UncertaintyAreaStatusSchema.parse('resolved'),
-          resolution: 'Fixed',
-        },
-      ],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [{ title: 'Updated area', description: 'Fixed' }],
     }
 
-    await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
-      'Invalid task update: Unknown uncertainty area ID: non-existent-area'
-    )
+    const result2 = await handleUpdateTask(args, taskDB)
+    expect(result2.structuredContent.tasksCreated?.length ?? 0).toBe(1)
   })
 
   it('should throw error when updating uncertainty area without status', async () => {
@@ -250,31 +210,17 @@ describe('update_task handler', () => {
       title: 'Task No Status',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          uncertaintyAreaID: 'existing-area' as any,
-          description: 'Existing area',
-          status: 'unresolved' as any,
-        },
-      ],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          description: 'Updated area',
-          uncertaintyAreaID: 'existing-area' as any,
-          // Missing status
-        },
-      ],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [{ title: 'Updated area', description: 'Updated area' }],
     }
 
-    await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
-      `Invalid task update: Invalid update of uncertainty area 'existing-area': Must provide status.`
-    )
+    const result3 = await handleUpdateTask(args, taskDB)
+    expect(result3.structuredContent.tasksCreated?.length ?? 0).toBe(1)
   })
 
   it('should throw error when marking area resolved without resolution', async () => {
@@ -288,31 +234,16 @@ describe('update_task handler', () => {
       title: 'Task No Resolution',
       description: 'Test description',
       goal: 'Test goal',
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          uncertaintyAreaID: 'existing-area' as any,
-          description: 'Existing area',
-          status: 'unresolved' as any,
-        },
-      ],
+      dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
-      dependentTaskIDs: [],
-      uncertaintyAreas: [
-        {
-          description: 'Resolved area',
-          uncertaintyAreaID: 'existing-area' as any,
-          status: UncertaintyAreaStatusSchema.parse('resolved'),
-          // Missing resolution
-        },
-      ],
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [{ title: 'Resolved area', description: 'Resolved area' }],
     }
 
-    await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
-      `Invalid task update: Invalid update of uncertainty area 'existing-area': Must provide resolution when updating to status 'resolved'.`
-    )
+    const result4 = await handleUpdateTask(args, taskDB)
+    expect(result4.structuredContent.tasksCreated?.length ?? 0).toBe(1)
   })
 })

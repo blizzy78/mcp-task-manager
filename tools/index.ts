@@ -1,5 +1,6 @@
 import type z from 'zod'
 import { CREATE_TASK, CreateTaskArgsSchema, createTaskTool, handleCreateTask } from './create_task.js'
+import { handleTaskInfo, TASK_INFO, TaskInfoArgsSchema, taskInfoTool } from './task_info.js'
 import type { ToolHandler } from './tools.js'
 import {
   handleTransitionTaskStatus,
@@ -9,7 +10,7 @@ import {
 } from './transition_task_status.js'
 import { handleUpdateTask, UPDATE_TASK, UpdateTaskArgsSchema, updateTaskTool } from './update_task.js'
 
-export const tools = [createTaskTool, updateTaskTool, transitionTaskStatusTool] as const
+export const tools = [createTaskTool, updateTaskTool, transitionTaskStatusTool, taskInfoTool] as const
 
 export const toolHandlers: Record<string, { handler: ToolHandler; schema: z.ZodTypeAny }> = {
   [CREATE_TASK]: {
@@ -23,5 +24,9 @@ export const toolHandlers: Record<string, { handler: ToolHandler; schema: z.ZodT
   [TRANSITION_TASK_STATUS]: {
     handler: handleTransitionTaskStatus,
     schema: TransitionTaskStatusArgsSchema,
+  },
+  [TASK_INFO]: {
+    handler: handleTaskInfo,
+    schema: TaskInfoArgsSchema,
   },
 } as const

@@ -6,11 +6,18 @@ export function createServer() {
     const server = new Server({
         name: 'task-manager',
         title: 'Task Manager',
-        version: '0.3.0',
+        version: '0.4.0',
     }, {
         capabilities: {
             tools: {},
         },
+        instructions: 'Use this server to manage structured tasks. Tools:\n' +
+            '- create_task: Create a new task with optional dependencies and uncertainty areas.\n' +
+            '- update_task: Update dependencies and uncertainty areas.\n' +
+            '- transition_task_status: Change status (not-started -> in-progress -> complete). ' +
+            "Before in-progress, all dependencies must be 'complete'. " +
+            'when completing, provide outcomeDetails.\n' +
+            '- task_info: Retrieve full task details.',
     });
     server.setRequestHandler(ListToolsRequestSchema, () => {
         return { tools };

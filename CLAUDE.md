@@ -2,7 +2,7 @@
 
 ## What the Project is About
 
-The Task Manager MCP Server is a TypeScript-based Model Context Protocol (MCP) server that provides task management capabilities for AI agents and automation systems. This project implements an MCP server that exposes three core tools for structured task orchestration: task creation, task updates, and task status management.
+The Task Manager MCP Server is a TypeScript-based Model Context Protocol (MCP) server that provides task management capabilities for AI agents and automation systems. This project implements an MCP server that exposes four core tools for structured task orchestration: task creation, task updates, task status management, and task information retrieval.
 
 The primary purpose of this project is to enable AI agents and other MCP clients to:
 
@@ -13,6 +13,12 @@ The primary purpose of this project is to enable AI agents and other MCP clients
 - **Orchestrate workflows** with proper dependency validation and parent-child task relationships
 
 The server maintains tasks in memory during execution and provides three transport modes (STDIO, SSE, HTTP) for different integration scenarios.
+
+## MCP Specification Compliance
+
+This server adheres to the Model Context Protocol (MCP) specification dated 2025-06-18. For full details, see the official specification:
+
+- MCP Specification (2025-06-18): https://modelcontextprotocol.io/specification/2025-06-18
 
 ## High Level View of the Architecture
 
@@ -29,11 +35,12 @@ The Task Manager MCP Server follows a straightforward architecture built on the 
   - **HTTP Mode** (`streamableHttp.ts`): HTTP-based communication
 
 #### 2. Task Management Tools
-Three discrete MCP tools provide the core functionality:
+Four discrete MCP tools provide the core functionality:
 
 - **`create_task`**: Creates new tasks with optional parent-child relationships and dependencies
 - **`update_task`**: Updates existing tasks with dependency information and uncertainty area tracking
 - **`transition_task_status`**: Manages task lifecycle states with validation rules
+- **`task_info`**: Retrieves full stored information for a specific task (all fields)
 
 #### 3. Data Layer
 - **TaskDB** (`task_db.ts`): Simple in-memory storage using Map for task persistence during server runtime
@@ -102,4 +109,4 @@ node dist/index.js streamableHttp # HTTP mode
 ```
 
 ### Integration
-The server implements the Model Context Protocol specification and provides three core tools (`create_task`, `update_task`, `transition_task_status`) that can be used by any MCP-compatible client. Tasks are stored in memory during server runtime and support hierarchical organization with dependency management.
+The server implements the Model Context Protocol specification and provides four core tools (`create_task`, `update_task`, `transition_task_status`, `task_info`) that can be used by any MCP-compatible client. Tasks are stored in memory during server runtime and support hierarchical organization with dependency management.

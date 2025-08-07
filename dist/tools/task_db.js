@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { TaskIDSchema } from './tasks.js';
 export class TaskDB {
     store = new Map();
     set(taskID, task) {
@@ -6,7 +8,7 @@ export class TaskDB {
     get(taskID) {
         return this.store.get(taskID);
     }
-    getSubtasks(parentTaskID) {
-        return Array.from(this.store.values()).filter((task) => task.parentTaskID === parentTaskID);
-    }
+}
+export function newTaskID() {
+    return TaskIDSchema.parse(randomUUID());
 }
