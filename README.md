@@ -6,7 +6,7 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
 - **Update tasks** with dependency information and uncertainty area tracking
 - **Track task progression** through defined states (not-started, in-progress, complete)
 - **Manage uncertainty areas** by identifying and tracking areas that need resolution before task execution
-- **Orchestrate workflows** with proper dependency validation and parent-child task relationships
+- **Orchestrate workflows** with proper dependency validation
 
 ## Tools
 
@@ -16,6 +16,7 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
      - `title` (string): A concise title for this task
      - `description` (string): A detailed description of this task
      - `goal` (string): The overall goal of this task
+     - `definitionsOfDone` (array of strings): A detailed list of criteria that must be met for this task to be considered complete
      - `dependsOnTaskIDs` (array of strings): Task IDs this task depends on; referenced tasks must already exist
      - `uncertaintyAreas` (array of objects): Areas requiring clarification, each containing:
        - `title` (string): A concise title for this uncertainty area
@@ -33,8 +34,10 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
      - `newUncertaintyAreas` (array of objects): New areas requiring clarification to add as separate tasks, each containing:
        - `title` (string)
        - `description` (string)
+     - `newDefinitionsOfDone` (array of strings, optional): Additional criteria that must be met for this task to be considered complete
    - Behavior:
      - Creates a separate task for each `newUncertaintyArea` (status `not-started`), applies `newDependsOnTaskIDs` to those tasks, and adds these newly created tasks as dependencies of the target `taskID`
+     - If `newDefinitionsOfDone` are provided, they are added to the task's existing definitions of done
      - If the target task is already `complete`, the operation fails
      - This operation does not update existing uncertainty-area tasks or their statuses
    - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`
@@ -44,7 +47,8 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
    - Inputs:
      - `taskID` (string): The identifier of this task
      - `newStatus` (enum): The new status ("not-started", "in-progress", or "complete")
-     - `outcomeDetails` (string, optional): Required when transitioning to "complete"
+     - `outcomeDetails` (array of strings, optional): Required when transitioning to "complete"
+     - `verificationEvidence` (array of strings, optional): Required when transitioning to "complete"
    - Behavior:
      - Allowed transitions:
        - `not-started` → `in-progress`
@@ -71,9 +75,11 @@ You must use the following tools to manage and organize your tasks. This is esse
 - Use the 'update_task' tool to update a task, such as adding new dependencies or uncertainty areas.
 - Use the 'transition_task_status' tool to transition the status of a task. IMPORTANT: You must always use this tool before you begin working on a task, and after you've completed a task.
 
-IMPORTANT: Always use the 'transition_task_status' tool to transition the status of a task before you begin working on it, and after you've completed the task. This is essential for effective task tracking and ensuring that all steps are completed in the correct order.
+IMPORTANT: You must use the 'transition_task_status' tool to transition the status of a task before you begin working on it, and after you've completed the task. This is essential for effective task tracking and ensuring that all steps are completed in the correct order.
 
 Pay attention that tasks can depend on each other. You may need to perform them in a specific order. Always check the dependencies of a task before performing it, and complete the dependencies first.
+
+IMPORTANT: Pay attention if a task is read-only. When performing a read-only task, you must not make any changes to the codebase or the project. Read-only tasks are meant for gathering information or doing research only. If you need to make changes to the codebase or the project, you must create new tasks for that purpose.
 ```
 
 

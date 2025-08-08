@@ -10,8 +10,17 @@ export const TransitionTaskStatusArgsSchema = z.object({
   outcomeDetails: z
     .string()
     .min(1)
+    .array()
+    .min(1)
     .optional()
-    .describe(`Details about the outcome of this task. Must be provided if transition.newStatus is 'complete'.`),
+    .describe(`A detailed list of outcomes of this task. Must be provided if newStatus is 'complete'.`),
+  verificationEvidence: z
+    .string()
+    .min(1)
+    .array()
+    .min(1)
+    .optional()
+    .describe(`A list of verification evidence for task completion. Must be provided if newStatus is 'complete'.`),
 })
 
 type TransitionTaskStatusArgs = z.infer<typeof TransitionTaskStatusArgsSchema>
@@ -27,12 +36,12 @@ Valid task status transitions are:
 - in-progress -> complete (if task is done)
 - complete -> in-progress (if task needs rework)
 All tasks this task depends on must be 'complete' before this task can be 'in-progress'.
-outcomeDetails must be provided when transitioning this task to 'complete'.`,
+outcomeDetails and verificationEvidence must be provided when transitioning this task to 'complete'.`,
   inputSchema: zodToJsonSchema(TransitionTaskStatusArgsSchema),
 }
 
 export async function handleTransitionTaskStatus(
-  { taskID, newStatus, outcomeDetails }: TransitionTaskStatusArgs,
+  { taskID, newStatus, outcomeDetails, verificationEvidence }: TransitionTaskStatusArgs,
   taskDB: TaskDB
 ) {
   const task = taskDB.get(taskID)
@@ -45,13 +54,10 @@ export async function handleTransitionTaskStatus(
     case 'complete':
       switch (newStatus) {
         case 'in-progress':
-          const incompleteDependsOnTask = task.dependsOnTaskIDs
-            .map((depID) => taskDB.get(depID)!)
-            .find((dep) => dep.currentStatus !== 'complete')
-
-          if (incompleteDependsOnTask) {
+          const incompleteTaskInTree = taskDB.getAllInTree(taskID).find((t) => t.currentStatus === 'in-progress')
+          if (incompleteTaskInTree) {
             throw new Error(
-              `Invalid status transition: Task '${taskID}' depends on task '${incompleteDependsOnTask.taskID}' which is not 'complete'. Use 'transition_task_status' tool to transition that task's status.`
+              `Invalid status transition: Only one task may ever be 'in-progress'. Task '${incompleteTaskInTree.taskID}' must be completed first.`
             )
           }
 
@@ -78,13 +84,31 @@ export async function handleTransitionTaskStatus(
       throw new Error(`Invalid task status: Invalid current status: ${task.currentStatus}`)
   }
 
-  if (newStatus === 'complete' && !outcomeDetails) {
+  if (newStatus === 'complete' && (!outcomeDetails || outcomeDetails.length === 0)) {
     throw new Error(`Invalid status transition: Must provide outcomeDetails to complete task '${taskID}'.`)
+  }
+
+  if (newStatus === 'complete' && (!verificationEvidence || verificationEvidence.length === 0)) {
+    throw new Error(`Invalid status transition: Must provide verificationEvidence to complete task '${taskID}'.`)
   }
 
   task.currentStatus = newStatus
 
-  const res = { taskUpdated: task }
+  const executionConstraints = [
+    newStatus === 'in-progress' &&
+      task.readonly &&
+      `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making ` +
+        'any permanent changes, editing code or any other content is not allowed.',
+
+    newStatus === 'in-progress' &&
+      task.definitionsOfDone.length > 0 &&
+      `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,
+  ].filter(Boolean)
+
+  const res = {
+    taskUpdated: task,
+    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
+  }
 
   return {
     content: [

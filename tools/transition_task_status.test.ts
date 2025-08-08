@@ -14,6 +14,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -40,13 +41,15 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
     const args = {
       taskID,
       newStatus: TaskStatusSchema.parse('complete'),
-      outcomeDetails: 'Task completed successfully',
+      outcomeDetails: ['Task completed successfully'],
+      verificationEvidence: ['Logs and screenshots stored at /evidence/task123'],
     }
 
     const result = await handleTransitionTaskStatus(args, taskDB)
@@ -65,6 +68,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -87,6 +91,7 @@ describe('transition_task_status handler', () => {
       title: 'Dependent Task',
       description: 'Dependent description',
       goal: 'Dependent goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -96,6 +101,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [depTaskID],
     })
 
@@ -105,7 +111,7 @@ describe('transition_task_status handler', () => {
     }
 
     await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
-      "Invalid status transition: Task 'task123' depends on task 'dep123' which is not 'complete'."
+      "Invalid status transition: Only one task may ever be 'in-progress'. Task 'dep123' must be completed first."
     )
   })
 
@@ -119,6 +125,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -132,6 +139,31 @@ describe('transition_task_status handler', () => {
     )
   })
 
+  it('should throw error when completing without verification evidence', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('task123')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'in-progress' as any,
+      title: 'Test Task',
+      description: 'Test description',
+      goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [],
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('complete'),
+      outcomeDetails: ['All steps verified'],
+    }
+
+    await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
+      `Invalid status transition: Must provide verificationEvidence to complete task '${taskID}'.`
+    )
+  })
+
   it('should allow transition from complete back to in-progress', async () => {
     const taskDB = new TaskDB()
     const taskID = TaskIDSchema.parse('task123')
@@ -142,6 +174,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -167,6 +200,7 @@ describe('transition_task_status handler', () => {
       title: 'Dependent Task',
       description: 'Dependent description',
       goal: 'Dependent goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -176,6 +210,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [depTaskID],
     })
 
@@ -200,6 +235,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -221,6 +257,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -242,6 +279,7 @@ describe('transition_task_status handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -265,5 +303,104 @@ describe('transition_task_status handler', () => {
     await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
       `Invalid status transition: Unknown task ID: ${nonExistentTaskID}`
     )
+  })
+
+  it('should include readonly constraint when transitioning readonly task to in-progress', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('readonly-task')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'not-started' as any,
+      title: 'Readonly Task',
+      description: 'Test readonly task',
+      goal: 'Test readonly goal',
+      readonly: true,
+      definitionsOfDone: [],
+      dependsOnTaskIDs: [],
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('in-progress'),
+    }
+
+    const result = await handleTransitionTaskStatus(args, taskDB)
+
+    expect(result.structuredContent.executionConstraints).toContain(
+      `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making any permanent changes, editing code or any other content is not allowed.`
+    )
+  })
+
+  it('should include definitions of done constraint when transitioning task with definitions to in-progress', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('task-with-dod')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'not-started' as any,
+      title: 'Task with DoD',
+      description: 'Test task with definitions of done',
+      goal: 'Test goal with DoD',
+      definitionsOfDone: ['Definition 1', 'Definition 2'],
+      dependsOnTaskIDs: [],
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('in-progress'),
+    }
+
+    const result = await handleTransitionTaskStatus(args, taskDB)
+
+    expect(result.structuredContent.executionConstraints).toContain(
+      `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`
+    )
+  })
+
+  it('should not include execution constraints for non-readonly task without definitions', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('simple-task')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'not-started' as any,
+      title: 'Simple Task',
+      description: 'Test simple task',
+      goal: 'Test simple goal',
+      definitionsOfDone: [],
+      dependsOnTaskIDs: [],
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('in-progress'),
+    }
+
+    const result = await handleTransitionTaskStatus(args, taskDB)
+
+    expect(result.structuredContent.executionConstraints).toBeUndefined()
+  })
+
+  it('should throw error for invalid transition from complete to not-started', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('task123')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'complete' as any,
+      title: 'Test Task',
+      description: 'Test description',
+      goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [],
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('not-started'),
+    }
+
+    await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow('Invalid status transition')
   })
 })

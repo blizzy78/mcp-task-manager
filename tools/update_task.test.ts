@@ -15,6 +15,7 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -22,6 +23,7 @@ describe('update_task handler', () => {
       taskID,
       newDependsOnTaskIDs: [],
       newUncertaintyAreas: [{ title: 'Updated uncertainty', description: 'Updated uncertainty' }],
+      newDefinitionsOfDone: ['Updated DoD'],
     }
 
     const result = await handleUpdateTask(args, taskDB)
@@ -31,6 +33,7 @@ describe('update_task handler', () => {
     expect(result.content).toBeInstanceOf(Array)
     expect(result.content).toHaveLength(1)
     expect(result.content[0].text).toContain('task123')
+    expect(result.structuredContent.taskUpdated.title).toBe('Test Task')
   })
 
   it('should handle tasks with no uncertainty areas', async () => {
@@ -44,6 +47,7 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -69,6 +73,7 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -94,6 +99,7 @@ describe('update_task handler', () => {
       title: 'Test Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -137,6 +143,7 @@ describe('update_task handler', () => {
       title: 'Completed Task',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -162,6 +169,7 @@ describe('update_task handler', () => {
       title: 'Task with Dependencies',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -186,6 +194,7 @@ describe('update_task handler', () => {
       title: 'Task with Areas',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -210,6 +219,7 @@ describe('update_task handler', () => {
       title: 'Task No Status',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 
@@ -234,6 +244,7 @@ describe('update_task handler', () => {
       title: 'Task No Resolution',
       description: 'Test description',
       goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
     })
 

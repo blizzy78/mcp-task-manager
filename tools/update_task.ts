@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { newTaskID, type Task, type TaskDB } from './task_db.js'
-import { TaskIDSchema, TaskStatusSchema } from './tasks.js'
+import { type TaskDB } from './task_db.js'
+import { TaskIDSchema } from './tasks.js'
 import type { TextContent, ToolResult } from './tools.js'
-import { UncertaintyAreaSchema } from './uncertainty_area.js'
+import { createUncertaintyAreaTasks, UncertaintyAreaSchema } from './uncertainty_area.js'
 
 export const UpdateTaskArgsSchema = z.object({
   taskID: TaskIDSchema.describe('The identifier of this task.'),
@@ -11,6 +11,13 @@ export const UpdateTaskArgsSchema = z.object({
   newUncertaintyAreas: UncertaintyAreaSchema.array().describe(
     "A detailed list of additional areas where there is uncertainty about this task's requirements or execution."
   ),
+  newDefinitionsOfDone: z
+    .string()
+    .min(1)
+    .array()
+    .min(1)
+    .optional()
+    .describe('A detailed list of additional criteria that must be met for this task to be considered complete.'),
 })
 
 type UpdateTaskArgs = z.infer<typeof UpdateTaskArgsSchema>
@@ -21,13 +28,12 @@ export const updateTaskTool = {
   name: UPDATE_TASK,
   title: 'Update task',
   description: `A tool to update an existing task.
-Can optionally provide a list of additional tasks that must be completed first.
-Can optionally provide a list of additional uncertainty areas to clarify before starting this task.`,
+Can optionally provide a list of additional dependencies, uncertainty areas, and definitions of done.`,
   inputSchema: zodToJsonSchema(UpdateTaskArgsSchema),
 }
 
 export async function handleUpdateTask(
-  { taskID, newDependsOnTaskIDs: dependsOnTaskIDs, newUncertaintyAreas: uncertaintyAreas }: UpdateTaskArgs,
+  { taskID, newDependsOnTaskIDs, newUncertaintyAreas, newDefinitionsOfDone }: UpdateTaskArgs,
   taskDB: TaskDB
 ) {
   const task = taskDB.get(taskID)
@@ -41,19 +47,18 @@ export async function handleUpdateTask(
     )
   }
 
-  const newUncertaintyAreaTasks = new Array<Task>()
-  for (const area of uncertaintyAreas) {
-    newUncertaintyAreaTasks.push({
-      taskID: newTaskID(),
-      currentStatus: TaskStatusSchema.parse('not-started'),
-      title: area.title,
-      description: `Gain understanding about: ${area.description}`,
-      goal: `Resolve uncertainty: ${area.title}`,
-      dependsOnTaskIDs,
-    } satisfies Task)
+  task.dependsOnTaskIDs.push(...newDependsOnTaskIDs)
+
+  const newUncertaintyAreaTasks = createUncertaintyAreaTasks(newUncertaintyAreas, task.title, task.dependsOnTaskIDs)
+  for (const uncertaintyAreaTask of newUncertaintyAreaTasks) {
+    taskDB.set(uncertaintyAreaTask.taskID, uncertaintyAreaTask)
   }
 
   task.dependsOnTaskIDs.push(...newUncertaintyAreaTasks.map((task) => task.taskID))
+
+  if (newDefinitionsOfDone) {
+    task.definitionsOfDone.push(...newDefinitionsOfDone)
+  }
 
   const res = {
     tasksCreated: newUncertaintyAreaTasks.length > 0 ? newUncertaintyAreaTasks : undefined,

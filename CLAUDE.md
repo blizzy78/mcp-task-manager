@@ -10,7 +10,7 @@ The primary purpose of this project is to enable AI agents and other MCP clients
 - **Update tasks** with dependency information and uncertainty area tracking
 - **Track task progression** through defined states (not-started, in-progress, complete)
 - **Manage uncertainty areas** by identifying and tracking areas that need resolution before task execution
-- **Orchestrate workflows** with proper dependency validation and parent-child task relationships
+- **Orchestrate workflows** with proper dependency validation
 
 The server maintains tasks in memory during execution and provides three transport modes (STDIO, SSE, HTTP) for different integration scenarios.
 
@@ -37,8 +37,8 @@ The Task Manager MCP Server follows a straightforward architecture built on the 
 #### 2. Task Management Tools
 Four discrete MCP tools provide the core functionality:
 
-- **`create_task`**: Creates new tasks with optional parent-child relationships and dependencies
-- **`update_task`**: Updates existing tasks with dependency information and uncertainty area tracking
+- **`create_task`**: Creates new tasks with optional dependencies and uncertainty areas
+- **`update_task`**: Updates existing tasks with additional dependencies, uncertainty areas, and definitions of done
 - **`transition_task_status`**: Manages task lifecycle states with validation rules
 - **`task_info`**: Retrieves full stored information for a specific task (all fields)
 
@@ -80,12 +80,10 @@ The testing approach ensures all tool functionality is validated, error conditio
 
 ## Task Management Rules
 
-1. **Task Creation**: All tasks start with "not-started" status
-2. **Dependency Validation**: Tasks cannot start until all dependent tasks are complete
-3. **Parent Task Rules**: Child tasks cannot start until parent task is "in-progress"
-4. **Uncertainty Areas**: Tasks cannot transition to "in-progress" until all uncertainty areas are resolved
-5. **Completion Requirements**: Tasks transitioning to "complete" must provide outcome details
-6. **Task Identification**: Task IDs are generated using crypto.randomUUID()
+- **Task Creation**: All tasks start with "not-started" status
+- **Dependency Validation**: Tasks cannot start until all dependent tasks are complete
+- **Completion Requirements**: Tasks transitioning to "complete" must provide outcome details and verification evidence
+- **Task Identification**: Task IDs are generated using crypto.randomUUID()
 
 ## Installation and Usage
 

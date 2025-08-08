@@ -12,6 +12,7 @@ describe('task_info handler', () => {
         title: 'Info Task',
         description: 'Task for info retrieval',
         goal: 'Goal',
+        definitionsOfDone: ['Info DoD'],
         dependsOnTaskIDs: [],
         uncertaintyAreas: [{ title: 'Clarify', description: 'Need clarification' }],
       },
@@ -32,6 +33,7 @@ describe('task_info handler', () => {
       title: 'Info Task',
       description: 'Task for info retrieval',
       goal: 'Goal',
+      definitionsOfDone: ['Info DoD'],
     })
   })
 

@@ -1,14 +1,19 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { newTaskID, type Task, type TaskDB } from './task_db.js'
-import { TaskIDSchema, TaskStatusSchema } from './tasks.js'
+import { type Task, type TaskDB } from './task_db.js'
+import { newTaskID, TaskIDSchema, TaskStatusSchema } from './tasks.js'
 import type { TextContent, ToolResult } from './tools.js'
-import { UncertaintyAreaSchema } from './uncertainty_area.js'
+import { createUncertaintyAreaTasks, UncertaintyAreaSchema } from './uncertainty_area.js'
 
 export const CreateTaskArgsSchema = z.object({
   title: z.string().min(1).describe('A concise title for this task.'),
   description: z.string().min(1).describe('A detailed description of this task.'),
   goal: z.string().min(1).describe('The overall goal of this task.'),
+  definitionsOfDone: z
+    .string()
+    .min(1)
+    .array()
+    .describe('A detailed list of criteria that must be met for this task to be considered complete.'),
   dependsOnTaskIDs: TaskIDSchema.array().describe(
     'A list of task identifiers this task depends on. Must be provided if these tasks must be complete before this task can be started.'
   ),
@@ -33,7 +38,7 @@ tool to transition the status of this task.`,
 }
 
 export async function handleCreateTask(
-  { title, description, goal, dependsOnTaskIDs, uncertaintyAreas }: CreateTaskArgs,
+  { title, description, goal, definitionsOfDone, dependsOnTaskIDs, uncertaintyAreas }: CreateTaskArgs,
   taskDB: TaskDB
 ) {
   for (const dependsOnTaskID of dependsOnTaskIDs) {
@@ -43,35 +48,36 @@ export async function handleCreateTask(
     }
   }
 
-  const newUncertaintyAreaTasks = new Array<Task>()
-  for (const area of uncertaintyAreas) {
-    newUncertaintyAreaTasks.push({
-      taskID: newTaskID(),
-      currentStatus: TaskStatusSchema.parse('not-started'),
-      title: `${title} - Uncertainty: ${area.title}`,
-      description: `Gain understanding about: ${area.description}`,
-      goal: `Resolve uncertainty: ${area.title}`,
-      dependsOnTaskIDs,
-    } satisfies Task)
-  }
-
   const newTasks = new Array<Task>()
+
+  const newUncertaintyAreaTasks = createUncertaintyAreaTasks(uncertaintyAreas, title, dependsOnTaskIDs)
   newTasks.push(...newUncertaintyAreaTasks)
 
-  newTasks.push({
+  const task = {
     taskID: newTaskID(),
     currentStatus: TaskStatusSchema.parse('not-started'),
     title,
     description,
     goal,
+    definitionsOfDone,
     dependsOnTaskIDs: [...dependsOnTaskIDs, ...newUncertaintyAreaTasks.map((task) => task.taskID)],
-  } satisfies Task)
+  } satisfies Task
+
+  newTasks.push(task)
 
   for (const newTask of newTasks) {
     taskDB.set(newTask.taskID, newTask)
   }
 
-  const res = { tasksCreated: newTasks }
+  const executionConstraints = [
+    newUncertaintyAreaTasks.length > 0 &&
+      `Dependencies of task '${task.taskID}' must be completed first before this task can be started.`,
+  ].filter(Boolean)
+
+  const res = {
+    tasksCreated: newTasks,
+    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
+  }
 
   return {
     content: [

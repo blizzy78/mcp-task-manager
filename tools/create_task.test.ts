@@ -10,6 +10,7 @@ describe('create_task handler', () => {
       title: 'Test Task',
       description: 'This is a test task',
       goal: 'Test goal',
+      definitionsOfDone: ['All acceptance criteria met'],
       dependsOnTaskIDs: [],
       uncertaintyAreas: [],
     }
@@ -22,6 +23,7 @@ describe('create_task handler', () => {
     expect(result.content).toHaveLength(1)
     expect(result.structuredContent).toHaveProperty('tasksCreated')
     expect(result.structuredContent.tasksCreated[0].currentStatus).toBe('not-started')
+    expect(result.structuredContent.tasksCreated.at(-1)!.title).toBe('Test Task')
   })
 
   it('should create uncertainty area tasks and link them as dependencies', async () => {
@@ -30,6 +32,7 @@ describe('create_task handler', () => {
       title: 'Uncertain Task',
       description: 'Task with uncertainties',
       goal: 'Uncertain goal',
+      definitionsOfDone: ['All uncertainties resolved'],
       dependsOnTaskIDs: [],
       uncertaintyAreas: [
         { title: 'Clarify input', description: 'Need more info' },
@@ -43,6 +46,7 @@ describe('create_task handler', () => {
     const areaTasks = result.structuredContent.tasksCreated.slice(0, 2)
     const mainTask = result.structuredContent.tasksCreated[2]
     expect(mainTask.dependsOnTaskIDs).toEqual([...args.dependsOnTaskIDs, ...areaTasks.map((t: any) => t.taskID)])
+    expect(mainTask.title).toBe('Uncertain Task')
   })
 
   it('should create a task with dependent tasks', async () => {
@@ -56,6 +60,7 @@ describe('create_task handler', () => {
       title: 'Dep Task 1',
       description: 'Dep task 1 description',
       goal: 'Dep goal 1',
+      definitionsOfDone: ['Done'],
       dependsOnTaskIDs: [],
     })
 
@@ -65,6 +70,7 @@ describe('create_task handler', () => {
       title: 'Dep Task 2',
       description: 'Dep task 2 description',
       goal: 'Dep goal 2',
+      definitionsOfDone: ['Done'],
       dependsOnTaskIDs: [],
     })
 
@@ -72,6 +78,7 @@ describe('create_task handler', () => {
       title: 'Dependent Task',
       description: 'This task depends on others',
       goal: 'Dependent goal',
+      definitionsOfDone: ['Criteria met'],
       dependsOnTaskIDs: [dependentTaskID1, dependentTaskID2],
       uncertaintyAreas: [],
     }
@@ -80,6 +87,7 @@ describe('create_task handler', () => {
 
     const mainTask = result.structuredContent.tasksCreated.at(-1)!
     expect(mainTask.dependsOnTaskIDs).toEqual([dependentTaskID1, dependentTaskID2])
+    expect(mainTask.title).toBe('Dependent Task')
   })
 
   it('should generate unique task IDs for each task creation', async () => {
@@ -88,6 +96,7 @@ describe('create_task handler', () => {
       title: 'Test Task',
       description: 'Same description',
       goal: 'Same goal',
+      definitionsOfDone: ['All done'],
       dependsOnTaskIDs: [],
       uncertaintyAreas: [],
     }
@@ -110,6 +119,7 @@ describe('create_task handler', () => {
       title: 'Dependent Task',
       description: 'Task with invalid dependency',
       goal: 'Test goal',
+      definitionsOfDone: ['Done'],
       dependsOnTaskIDs: [nonExistentDepID],
       uncertaintyAreas: [],
     }
