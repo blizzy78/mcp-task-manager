@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { dedup } from './arrays.js';
 import { newTaskID, TaskIDSchema, TaskStatusSchema } from './tasks.js';
 import { createUncertaintyAreaTasks, UncertaintyAreaSchema } from './uncertainty_area.js';
 export const CreateTaskArgsSchema = z.object({
@@ -12,7 +13,7 @@ export const CreateTaskArgsSchema = z.object({
         .array()
         .describe('A detailed list of criteria that must be met for this task to be considered complete.'),
     dependsOnTaskIDs: TaskIDSchema.array().describe('A list of task identifiers this task depends on. Must be provided if these tasks must be complete before this task can be started.'),
-    uncertaintyAreas: UncertaintyAreaSchema.array().describe("A detailed list of areas where there is uncertainty about this task's requirements or execution."),
+    uncertaintyAreas: UncertaintyAreaSchema.array().describe("A detailed list of areas where there is uncertainty about this task's requirements or execution. May be empty. Ensure list is ordered by priority."),
 });
 export const CREATE_TASK = 'create_task';
 export const createTaskTool = {
@@ -29,7 +30,7 @@ export async function handleCreateTask({ title, description, goal, definitionsOf
     for (const dependsOnTaskID of dependsOnTaskIDs) {
         const dependsOnTask = taskDB.get(dependsOnTaskID);
         if (!dependsOnTask) {
-            throw new Error(`Invalid task: Unknown dependent task ID: ${dependsOnTaskID}`);
+            throw new Error(`Invalid task: Unknown dependency task: ${dependsOnTaskID}`);
         }
     }
     const newTasks = new Array();
@@ -42,18 +43,30 @@ export async function handleCreateTask({ title, description, goal, definitionsOf
         description,
         goal,
         definitionsOfDone,
-        dependsOnTaskIDs: [...dependsOnTaskIDs, ...newUncertaintyAreaTasks.map((task) => task.taskID)],
+        dependsOnTaskIDs: dedup([...dependsOnTaskIDs, ...newUncertaintyAreaTasks.map((task) => task.taskID)]),
+        uncertaintyAreasUpdated: true,
     };
     newTasks.push(task);
     for (const newTask of newTasks) {
         taskDB.set(newTask.taskID, newTask);
     }
+    const tasksWithoutUncertaintyAreas = taskDB.getAllInTree(task.taskID).filter((t) => !t.uncertaintyAreasUpdated);
     const executionConstraints = [
         newUncertaintyAreaTasks.length > 0 &&
             `Dependencies of task '${task.taskID}' must be completed first before this task can be started.`,
+        tasksWithoutUncertaintyAreas.length > 0 &&
+            `Uncertainty areas must be updated for tasks: ${tasksWithoutUncertaintyAreas
+                .map((t) => `'${t.taskID}'`)
+                .join(', ')}. Use 'update_task' tool to do so.`,
+        taskDB.getAllInTree(task.taskID).filter((t) => t.currentStatus === 'not-started').length > 1 &&
+            `Note: Only one task may be 'in-progress' at any one time.`,
     ].filter(Boolean);
     const res = {
-        tasksCreated: newTasks,
+        tasksCreated: newTasks.map((t) => ({
+            ...t,
+            // we don't want them to see this
+            uncertaintyAreasUpdated: undefined,
+        })),
         executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
     };
     return {

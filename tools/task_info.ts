@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import type { TaskDB } from './task_db.js'
+import type { Task, TaskDB } from './task_db.js'
 import { TaskIDSchema } from './tasks.js'
 import type { TextContent, ToolResult } from './tools.js'
 
@@ -25,7 +25,14 @@ export async function handleTaskInfo({ taskID }: TaskInfoArgs, taskDB: TaskDB) {
     throw new Error(`Invalid task info request: Unknown task ID: ${taskID}`)
   }
 
-  const res = { task }
+  const res = {
+    task: {
+      ...task,
+
+      // we don't want them to see this
+      uncertaintyAreasUpdated: undefined,
+    } satisfies Task,
+  }
 
   return {
     content: [

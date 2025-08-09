@@ -16,6 +16,7 @@ describe('transition_task_status handler', () => {
       goal: 'Test goal',
       definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [],
+      uncertaintyAreasUpdated: true,
     })
 
     const args = {
@@ -111,7 +112,7 @@ describe('transition_task_status handler', () => {
     }
 
     await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
-      "Invalid status transition: Only one task may ever be 'in-progress'. Task 'dep123' must be completed first."
+      "Invalid status transition: Only one task may be 'in-progress' at any one time. Task 'dep123' is already 'in-progress' and must be completed first."
     )
   })
 
@@ -212,6 +213,7 @@ describe('transition_task_status handler', () => {
       goal: 'Test goal',
       definitionsOfDone: ['Initial DoD'],
       dependsOnTaskIDs: [depTaskID],
+      uncertaintyAreasUpdated: true,
     })
 
     const args = {
@@ -318,6 +320,7 @@ describe('transition_task_status handler', () => {
       readonly: true,
       definitionsOfDone: [],
       dependsOnTaskIDs: [],
+      uncertaintyAreasUpdated: true,
     })
 
     const args = {
@@ -344,6 +347,7 @@ describe('transition_task_status handler', () => {
       goal: 'Test goal with DoD',
       definitionsOfDone: ['Definition 1', 'Definition 2'],
       dependsOnTaskIDs: [],
+      uncertaintyAreasUpdated: true,
     })
 
     const args = {
@@ -370,6 +374,7 @@ describe('transition_task_status handler', () => {
       goal: 'Test simple goal',
       definitionsOfDone: [],
       dependsOnTaskIDs: [],
+      uncertaintyAreasUpdated: true,
     })
 
     const args = {
@@ -402,5 +407,121 @@ describe('transition_task_status handler', () => {
     }
 
     await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow('Invalid status transition')
+  })
+
+  it('should allow direct transition from not-started to complete with outcome details', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('task123')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'not-started' as any,
+      title: 'Test Task',
+      description: 'Test description',
+      goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [],
+      uncertaintyAreasUpdated: true,
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('complete'),
+      outcomeDetails: ['Task completed successfully'],
+      verificationEvidence: ['Evidence provided'],
+    }
+
+    const result = await handleTransitionTaskStatus(args, taskDB)
+
+    expect(result.content[0].text).toContain('task123')
+    expect(result.content[0].text).toContain('complete')
+  })
+
+  it('should throw error when transitioning not-started task without uncertainty areas updated', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('task123')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'not-started' as any,
+      title: 'Test Task',
+      description: 'Test description',
+      goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [],
+      // uncertaintyAreasUpdated is undefined/false
+    })
+
+    const args = {
+      taskID,
+      newStatus: TaskStatusSchema.parse('in-progress'),
+    }
+
+    await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
+      `Invalid status transition: Uncertainty areas for task '${taskID}' must be updated before it can be started. Use 'update_task' tool to do so.`
+    )
+  })
+
+  it('should throw error when transitioning complete to in-progress while another task is in-progress', async () => {
+    const taskDB = new TaskDB()
+    const taskID1 = TaskIDSchema.parse('task1')
+    const taskID2 = TaskIDSchema.parse('task2')
+
+    // First task is in-progress
+    taskDB.set(taskID1, {
+      taskID: taskID1,
+      currentStatus: 'in-progress' as any,
+      title: 'In Progress Task',
+      description: 'Task in progress',
+      goal: 'Test goal 1',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [],
+    })
+
+    // Second task is complete and depends on the first task (making them in the same tree)
+    taskDB.set(taskID2, {
+      taskID: taskID2,
+      currentStatus: 'complete' as any,
+      title: 'Complete Task',
+      description: 'Completed task',
+      goal: 'Test goal 2',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [taskID1],
+    })
+
+    const args = {
+      taskID: taskID2,
+      newStatus: TaskStatusSchema.parse('in-progress'),
+    }
+
+    await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
+      `Invalid status transition: Only one task may ever be 'in-progress'. Task '${taskID1}' must be completed first.`
+    )
+  })
+
+  it('should throw error for invalid transition with bypassed schema', async () => {
+    const taskDB = new TaskDB()
+    const taskID = TaskIDSchema.parse('task123')
+
+    taskDB.set(taskID, {
+      taskID,
+      currentStatus: 'not-started' as any,
+      title: 'Test Task',
+      description: 'Test description',
+      goal: 'Test goal',
+      definitionsOfDone: ['Initial DoD'],
+      dependsOnTaskIDs: [],
+      uncertaintyAreasUpdated: true,
+    })
+
+    // Bypass schema validation by casting to any
+    const args = {
+      taskID,
+      newStatus: 'invalid-status' as any,
+    }
+
+    await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
+      'Invalid status transition: not-started -> invalid-status'
+    )
   })
 })

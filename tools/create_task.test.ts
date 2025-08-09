@@ -125,7 +125,7 @@ describe('create_task handler', () => {
     }
 
     await expect(handleCreateTask(args, taskDB)).rejects.toThrowError(
-      `Invalid task: Unknown dependent task ID: ${nonExistentDepID}`
+      `Invalid task: Unknown dependency task: ${nonExistentDepID}`
     )
   })
 })

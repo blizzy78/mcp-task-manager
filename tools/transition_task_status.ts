@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import type { TaskDB } from './task_db.js'
+import type { Task, TaskDB } from './task_db.js'
 import { TaskIDSchema, TaskStatusSchema } from './tasks.js'
 import type { TextContent, ToolResult } from './tools.js'
 
@@ -57,7 +57,13 @@ export async function handleTransitionTaskStatus(
         case 'in-progress':
           if (inProgressTaskInTree) {
             throw new Error(
-              `Invalid status transition: Only one task may ever be 'in-progress'. Task '${inProgressTaskInTree.taskID}' must be completed first.`
+              `Invalid status transition: Only one task may be 'in-progress' at any one time. Task '${inProgressTaskInTree.taskID}' is already 'in-progress' and must be completed first.`
+            )
+          }
+
+          if (!task.uncertaintyAreasUpdated) {
+            throw new Error(
+              `Invalid status transition: Uncertainty areas for task '${taskID}' must be updated before it can be started. Use 'update_task' tool to do so.`
             )
           }
 
@@ -127,7 +133,13 @@ export async function handleTransitionTaskStatus(
   ].filter(Boolean)
 
   const res = {
-    taskUpdated: task,
+    taskUpdated: {
+      ...task,
+
+      // we don't want them to see this
+      uncertaintyAreasUpdated: undefined,
+    } satisfies Task,
+
     executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
   }
 

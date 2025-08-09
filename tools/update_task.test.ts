@@ -179,8 +179,9 @@ describe('update_task handler', () => {
       newUncertaintyAreas: [],
     }
 
-    const result = await handleUpdateTask(args, taskDB)
-    expect(result.structuredContent.taskUpdated.taskID).toBe(taskID)
+    await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
+      'Invalid task update: Unknown dependency task: non-existent-dep'
+    )
   })
 
   it('should throw error for non-existent uncertainty area ID', async () => {

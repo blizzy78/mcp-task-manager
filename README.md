@@ -23,8 +23,10 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
        - `description` (string): A description of this uncertainty area
    - Behavior:
      - Creates one separate task per uncertainty area (status `not-started`), and links those tasks as dependencies of the newly created main task
+     - Uncertainty area tasks are created as readonly tasks with titles like "Resolve uncertainty: {area.title} for task: {taskTitle}"
      - Any provided `dependsOnTaskIDs` are also applied as dependencies of each uncertainty-area task
-   - Returns: Confirmation including a list of `tasksCreated` (uncertainty-area tasks first, then the main task)
+     - Only one task can be `in-progress` at a time across the entire task tree
+   - Returns: Confirmation including a list of `tasksCreated` (uncertainty-area tasks first, then the main task) and `executionConstraints` with dependency and rule information
 
 2. `update_task`
    - A tool to update an existing task
@@ -40,7 +42,7 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
      - If `newDefinitionsOfDone` are provided, they are added to the task's existing definitions of done
      - If the target task is already `complete`, the operation fails
      - This operation does not update existing uncertainty-area tasks or their statuses
-   - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`
+   - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`, plus `executionConstraints` about uncertainty areas that need updating
 
 3. `transition_task_status`
    - A tool to transition the status of a task
@@ -55,13 +57,16 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
        - `in-progress` → `complete` (requires `outcomeDetails`)
        - `complete` → `in-progress`
      - To start (`in-progress`), all dependencies of the task must be `complete`
-   - Returns: Status transition confirmation including `taskUpdated`
+     - Tasks must have their uncertainty areas updated before they can be started
+     - Only one task can be `in-progress` at a time across the entire task tree
+     - Before starting a task, it must have its `uncertaintyAreasUpdated` flag set (done via `update_task`)
+   - Returns: Status transition confirmation including `taskUpdated` and `executionConstraints` with readonly warnings and definitions of done reminders
 
 4. `task_info`
    - A tool to retrieve full information about a task
    - Inputs:
      - `taskID` (string): The identifier of this task
-   - Returns: The stored task object `{ taskID, currentStatus, title, description, goal, dependsOnTaskIDs }`
+   - Returns: The complete stored task object `{ taskID, currentStatus, title, description, goal, readonly, definitionsOfDone, dependsOnTaskIDs }`
 
 
 ## Recommended Agent Prompt Snippet

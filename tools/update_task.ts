@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { type TaskDB } from './task_db.js'
+import { dedup } from './arrays.js'
+import { type Task, type TaskDB } from './task_db.js'
 import { TaskIDSchema } from './tasks.js'
 import type { TextContent, ToolResult } from './tools.js'
 import { createUncertaintyAreaTasks, UncertaintyAreaSchema } from './uncertainty_area.js'
@@ -9,7 +10,7 @@ export const UpdateTaskArgsSchema = z.object({
   taskID: TaskIDSchema.describe('The identifier of this task.'),
   newDependsOnTaskIDs: TaskIDSchema.array().describe('A list of additional task identifiers this task depends on.'),
   newUncertaintyAreas: UncertaintyAreaSchema.array().describe(
-    "A detailed list of additional areas where there is uncertainty about this task's requirements or execution."
+    "A detailed list of additional areas where there is uncertainty about this task's requirements or execution. May be empty. Ensure list is ordered by priority."
   ),
   newDefinitionsOfDone: z
     .string()
@@ -47,6 +48,13 @@ export async function handleUpdateTask(
     )
   }
 
+  for (const dependsOnTaskID of newDependsOnTaskIDs) {
+    const dependsOnTask = taskDB.get(dependsOnTaskID)
+    if (!dependsOnTask) {
+      throw new Error(`Invalid task update: Unknown dependency task: ${dependsOnTaskID}`)
+    }
+  }
+
   task.dependsOnTaskIDs.push(...newDependsOnTaskIDs)
 
   const newUncertaintyAreaTasks = createUncertaintyAreaTasks(newUncertaintyAreas, task.title, task.dependsOnTaskIDs)
@@ -56,13 +64,45 @@ export async function handleUpdateTask(
 
   task.dependsOnTaskIDs.push(...newUncertaintyAreaTasks.map((task) => task.taskID))
 
+  task.dependsOnTaskIDs = dedup(task.dependsOnTaskIDs)
+
   if (newDefinitionsOfDone) {
     task.definitionsOfDone.push(...newDefinitionsOfDone)
   }
 
+  task.uncertaintyAreasUpdated = true
+
+  const tasksWithoutUncertaintyAreas = taskDB.getAllInTree(task.taskID).filter((t) => !t.uncertaintyAreasUpdated)
+
+  const executionConstraints = [
+    tasksWithoutUncertaintyAreas.length > 0 &&
+      `Uncertainty areas must be updated for tasks: ${tasksWithoutUncertaintyAreas
+        .map((t) => `'${t.taskID}'`)
+        .join(', ')}. Use 'update_task' tool to do so.`,
+  ].filter(Boolean)
+
   const res = {
-    tasksCreated: newUncertaintyAreaTasks.length > 0 ? newUncertaintyAreaTasks : undefined,
-    taskUpdated: task,
+    tasksCreated:
+      newUncertaintyAreaTasks.length > 0
+        ? newUncertaintyAreaTasks.map(
+            (t) =>
+              ({
+                ...t,
+
+                // we don't want them to see this
+                uncertaintyAreasUpdated: undefined,
+              } satisfies Task)
+          )
+        : undefined,
+
+    taskUpdated: {
+      ...task,
+
+      // we don't want them to see this
+      uncertaintyAreasUpdated: undefined,
+    } satisfies Task,
+
+    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
   }
 
   return {

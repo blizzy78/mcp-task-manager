@@ -43,7 +43,10 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
             switch (newStatus) {
                 case 'in-progress':
                     if (inProgressTaskInTree) {
-                        throw new Error(`Invalid status transition: Only one task may ever be 'in-progress'. Task '${inProgressTaskInTree.taskID}' must be completed first.`);
+                        throw new Error(`Invalid status transition: Only one task may be 'in-progress' at any one time. Task '${inProgressTaskInTree.taskID}' is already 'in-progress' and must be completed first.`);
+                    }
+                    if (!task.uncertaintyAreasUpdated) {
+                        throw new Error(`Invalid status transition: Uncertainty areas for task '${taskID}' must be updated before it can be started. Use 'update_task' tool to do so.`);
                     }
                     // okay
                     break;
@@ -95,7 +98,11 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
             `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,
     ].filter(Boolean);
     const res = {
-        taskUpdated: task,
+        taskUpdated: {
+            ...task,
+            // we don't want them to see this
+            uncertaintyAreasUpdated: undefined,
+        },
         executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
     };
     return {

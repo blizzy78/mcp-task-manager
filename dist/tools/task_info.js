@@ -16,7 +16,13 @@ export async function handleTaskInfo({ taskID }, taskDB) {
     if (!task) {
         throw new Error(`Invalid task info request: Unknown task ID: ${taskID}`);
     }
-    const res = { task };
+    const res = {
+        task: {
+            ...task,
+            // we don't want them to see this
+            uncertaintyAreasUpdated: undefined,
+        },
+    };
     return {
         content: [
             {

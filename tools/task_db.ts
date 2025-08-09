@@ -9,6 +9,7 @@ export type Task = {
   readonly?: boolean
   definitionsOfDone: Array<string>
   dependsOnTaskIDs: Array<TaskID>
+  uncertaintyAreasUpdated?: boolean
 }
 
 export class TaskDB {

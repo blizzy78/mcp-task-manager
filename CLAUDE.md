@@ -65,7 +65,7 @@ The project uses **Vitest** as the testing framework with comprehensive unit tes
 - **Coverage Reporting**: Text-based coverage with exclusions for configuration and build files
 
 ### Testing Strategy
-- **Tool-Focused Testing**: Each of the three tools has comprehensive test coverage
+- **Tool-Focused Testing**: Each of the four tools has comprehensive test coverage
 - **Schema Validation**: Tests verify input validation and output structure compliance
 - **Scenario Coverage**: Tests include simple tasks, complex hierarchies, dependencies, and error conditions
 - **Business Rule Validation**: Tests ensure proper task lifecycle management and constraint enforcement

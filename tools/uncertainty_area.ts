@@ -13,7 +13,7 @@ export function createUncertaintyAreaTasks(
   areas: UncertaintyArea[],
   taskTitle: string,
   taskDependsOnTaskIDs: TaskID[]
-) {
+): Array<Task> {
   return areas.map(
     (area) =>
       ({
