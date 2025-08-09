@@ -81,7 +81,7 @@ The testing approach ensures all tool functionality is validated, error conditio
 ## Task Management Rules
 
 - **Task Creation**: All tasks start with "not-started" status
-- **Dependency Validation**: Tasks cannot start until all dependent tasks are complete
+- **Dependency Validation**: Tasks cannot start until all dependencies are complete
 - **Completion Requirements**: Tasks transitioning to "complete" must provide outcome details and verification evidence
 - **Task Identification**: Task IDs are generated using crypto.randomUUID()
 

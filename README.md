@@ -8,6 +8,9 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
 - **Manage uncertainty areas** by identifying and tracking areas that need resolution before task execution
 - **Orchestrate workflows** with proper dependency validation
 
+The tools have been tested extensively and successfully with Claude Sonnet 4. (GPT-4.1 and GPT-5 do not seem to work very well unfortunately.)
+
+
 ## Tools
 
 1. `create_task`
@@ -69,7 +72,32 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
    - Returns: The complete stored task object `{ taskID, currentStatus, title, description, goal, readonly, definitionsOfDone, dependsOnTaskIDs }`
 
 
-## Recommended Agent Prompt Snippet
+## Recommended Agent Prompt Snippets
+
+**Instructions section**
+
+```
+# Agent Instructions
+
+For any user request, DO THIS FIRST: Use the Task Management tools to create a new task for the user's request. Always add this uncertainty area as the first one to the task: 'Project configuration, such as test commands'.
+
+Resolve the user's request completely by performing all incomplete tasks. Doing so may include:
+
+- Gathering information or doing research
+- Writing or editing code or other content
+- Fixing problems
+- etc.
+
+Use all tools available to you to help you in performing tasks, as appropriate. This includes:
+
+- Use the Task Management Tools to manage your tasks. You may create new tasks, update existing tasks, and transition task statuses at any time. Always use these tools to manage your tasks.
+- <add other relevant tools here>
+
+Keep performing tasks until all tasks are complete. The user's request is considered resolved once all tasks are complete.
+```
+
+
+**Task Management tools section**
 
 ```
 # Task Management Tools
