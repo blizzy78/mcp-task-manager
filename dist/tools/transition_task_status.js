@@ -37,15 +37,17 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
     if (!task) {
         throw new Error(`Invalid status transition: Unknown task ID: ${taskID}`);
     }
+    const inProgressTaskInTree = taskDB.getAllInTree(taskID).find((t) => t.currentStatus === 'in-progress');
     switch (task.currentStatus) {
         case 'not-started':
-        case 'complete':
             switch (newStatus) {
                 case 'in-progress':
-                    const incompleteTaskInTree = taskDB.getAllInTree(taskID).find((t) => t.currentStatus === 'in-progress');
-                    if (incompleteTaskInTree) {
-                        throw new Error(`Invalid status transition: Only one task may ever be 'in-progress'. Task '${incompleteTaskInTree.taskID}' must be completed first.`);
+                    if (inProgressTaskInTree) {
+                        throw new Error(`Invalid status transition: Only one task may ever be 'in-progress'. Task '${inProgressTaskInTree.taskID}' must be completed first.`);
                     }
+                    // okay
+                    break;
+                case 'complete':
                     // okay
                     break;
                 default:
@@ -55,6 +57,18 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
         case 'in-progress':
             switch (newStatus) {
                 case 'complete':
+                    // okay
+                    break;
+                default:
+                    throw new Error(`Invalid status transition: ${task.currentStatus} -> ${newStatus}`);
+            }
+            break;
+        case 'complete':
+            switch (newStatus) {
+                case 'in-progress':
+                    if (inProgressTaskInTree) {
+                        throw new Error(`Invalid status transition: Only one task may ever be 'in-progress'. Task '${inProgressTaskInTree.taskID}' must be completed first.`);
+                    }
                     // okay
                     break;
                 default:
