@@ -1,6 +1,6 @@
 import type z from 'zod'
 import { CREATE_TASK, CreateTaskArgsSchema, createTaskTool, handleCreateTask } from './create_task.js'
-import { handleTaskInfo, TASK_INFO, TaskInfoArgsSchema, taskInfoTool } from './task_info.js'
+import { handleTaskInfo, TASK_INFO, taskInfoArgsSchema, taskInfoTool } from './task_info.js'
 import type { ToolHandler } from './tools.js'
 import {
   handleTransitionTaskStatus,
@@ -10,23 +10,35 @@ import {
 } from './transition_task_status.js'
 import { handleUpdateTask, UPDATE_TASK, UpdateTaskArgsSchema, updateTaskTool } from './update_task.js'
 
-export const tools = [createTaskTool, updateTaskTool, transitionTaskStatusTool, taskInfoTool] as const
+export type ToolHandlerInfo = {
+  handler: ToolHandler
+  schema: z.ZodTypeAny
+}
 
-export const toolHandlers: Record<string, { handler: ToolHandler; schema: z.ZodTypeAny }> = {
-  [CREATE_TASK]: {
-    handler: handleCreateTask,
-    schema: CreateTaskArgsSchema,
-  },
-  [UPDATE_TASK]: {
-    handler: handleUpdateTask,
-    schema: UpdateTaskArgsSchema,
-  },
-  [TRANSITION_TASK_STATUS]: {
-    handler: handleTransitionTaskStatus,
-    schema: TransitionTaskStatusArgsSchema,
-  },
-  [TASK_INFO]: {
-    handler: handleTaskInfo,
-    schema: TaskInfoArgsSchema,
-  },
-} as const
+export function tools(singleAgent: boolean) {
+  return [createTaskTool, updateTaskTool, transitionTaskStatusTool, taskInfoTool(singleAgent)] as const
+}
+
+export function toolHandlers(singleAgent: boolean): Readonly<Record<string, ToolHandlerInfo>> {
+  return {
+    [CREATE_TASK]: {
+      handler: handleCreateTask,
+      schema: CreateTaskArgsSchema,
+    } satisfies ToolHandlerInfo,
+
+    [UPDATE_TASK]: {
+      handler: handleUpdateTask,
+      schema: UpdateTaskArgsSchema,
+    } satisfies ToolHandlerInfo,
+
+    [TRANSITION_TASK_STATUS]: {
+      handler: handleTransitionTaskStatus,
+      schema: TransitionTaskStatusArgsSchema,
+    } satisfies ToolHandlerInfo,
+
+    [TASK_INFO]: {
+      handler: handleTaskInfo,
+      schema: taskInfoArgsSchema(singleAgent),
+    } satisfies ToolHandlerInfo,
+  }
+}

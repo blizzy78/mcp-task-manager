@@ -3,10 +3,12 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { toolHandlers, tools } from './tools/index.js';
 import { TaskDB } from './tools/task_db.js';
 export function createServer() {
+    const singleAgent = process.env.SINGLE_AGENT === 'true';
+    console.error(singleAgent ? 'Running in single agent mode' : 'Running in multi-agent mode');
     const server = new Server({
         name: 'task-manager',
         title: 'Task Manager',
-        version: '0.6.0',
+        version: '0.7.0',
     }, {
         capabilities: {
             tools: {},
@@ -20,11 +22,12 @@ export function createServer() {
             '- task_info: Retrieve full task details.',
     });
     server.setRequestHandler(ListToolsRequestSchema, () => {
-        return { tools };
+        return { tools: tools(singleAgent) };
     });
-    const taskDB = new TaskDB();
+    const handlers = toolHandlers(singleAgent);
+    const taskDB = new TaskDB(singleAgent);
     server.setRequestHandler(CallToolRequestSchema, async ({ params: { name, arguments: args } }) => {
-        const toolHandler = toolHandlers[name];
+        const toolHandler = handlers[name];
         if (!toolHandler) {
             throw new Error(`Unknown tool: ${name}`);
         }

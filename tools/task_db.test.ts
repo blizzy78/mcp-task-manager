@@ -130,4 +130,37 @@ describe('TaskDB', () => {
       }
     })
   })
+
+  describe('single agent mode', () => {
+    it('should not track current in-progress task in normal mode', () => {
+      const taskDB = new TaskDB()
+      const taskID = createTaskID('test-task')
+
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+
+      taskDB.setCurrentInProgressTask(taskID)
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined() // Should still be undefined in normal mode
+    })
+
+    it('should track current in-progress task in single agent mode', () => {
+      const taskDB = new TaskDB(true)
+      const taskID = createTaskID('test-task')
+
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+
+      taskDB.setCurrentInProgressTask(taskID)
+      expect(taskDB.getCurrentInProgressTask()).toBe(taskID)
+
+      taskDB.setCurrentInProgressTask(undefined)
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+    })
+
+    it('should default to normal mode when no parameter provided', () => {
+      const taskDB = new TaskDB()
+      const taskID = createTaskID('test-task')
+
+      taskDB.setCurrentInProgressTask(taskID)
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined() // Should behave like normal mode
+    })
+  })
 })

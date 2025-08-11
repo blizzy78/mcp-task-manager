@@ -35,7 +35,9 @@ outcomeDetails and verificationEvidence must be provided when transitioning this
 export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDetails, verificationEvidence }, taskDB) {
     const task = taskDB.get(taskID);
     if (!task) {
-        throw new Error(`Invalid status transition: Unknown task ID: ${taskID}`);
+        throw new Error(`Invalid status transition: Unknown task ID: ${taskID}.${taskDB.isSingleAgent
+            ? ` Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
+            : ''}`);
     }
     const inProgressTaskInTree = taskDB.getAllInTree(taskID).find((t) => t.currentStatus === 'in-progress');
     switch (task.currentStatus) {
@@ -87,7 +89,13 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
     if (newStatus === 'complete' && (!verificationEvidence || verificationEvidence.length === 0)) {
         throw new Error(`Invalid status transition: Must provide verificationEvidence to complete task '${taskID}'.`);
     }
+    if (task.currentStatus === 'in-progress' && newStatus !== 'in-progress') {
+        taskDB.setCurrentInProgressTask(undefined);
+    }
     task.currentStatus = newStatus;
+    if (newStatus === 'in-progress') {
+        taskDB.setCurrentInProgressTask(taskID);
+    }
     const executionConstraints = [
         newStatus === 'in-progress' &&
             task.readonly &&

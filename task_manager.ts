@@ -4,11 +4,14 @@ import { toolHandlers, tools } from './tools/index.js'
 import { TaskDB } from './tools/task_db.js'
 
 export function createServer() {
+  const singleAgent = process.env.SINGLE_AGENT === 'true'
+  console.error(singleAgent ? 'Running in single agent mode' : 'Running in multi-agent mode')
+
   const server = new Server(
     {
       name: 'task-manager',
       title: 'Task Manager',
-      version: '0.6.0',
+      version: '0.7.0',
     },
 
     {
@@ -28,13 +31,15 @@ export function createServer() {
   )
 
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    return { tools }
+    return { tools: tools(singleAgent) }
   })
 
-  const taskDB = new TaskDB()
+  const handlers = toolHandlers(singleAgent)
+
+  const taskDB = new TaskDB(singleAgent)
 
   server.setRequestHandler(CallToolRequestSchema, async ({ params: { name, arguments: args } }) => {
-    const toolHandler = toolHandlers[name as keyof typeof toolHandlers]
+    const toolHandler = handlers[name as keyof typeof handlers]
     if (!toolHandler) {
       throw new Error(`Unknown tool: ${name}`)
     }

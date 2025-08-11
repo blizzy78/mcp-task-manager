@@ -524,4 +524,131 @@ describe('transition_task_status handler', () => {
       'Invalid status transition: not-started -> invalid-status'
     )
   })
+
+  describe('single agent mode', () => {
+    it('should track current in-progress task when transitioning to in-progress in single agent mode', async () => {
+      const taskDB = new TaskDB(true) // Enable single agent mode
+      const taskID = TaskIDSchema.parse('task123')
+
+      taskDB.set(taskID, {
+        taskID,
+        currentStatus: 'not-started' as any,
+        title: 'Test Task',
+        description: 'Test description',
+        goal: 'Test goal',
+        definitionsOfDone: ['Initial DoD'],
+        dependsOnTaskIDs: [],
+        uncertaintyAreasUpdated: true,
+      })
+
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+
+      const args = {
+        taskID,
+        newStatus: TaskStatusSchema.parse('in-progress'),
+      }
+
+      await handleTransitionTaskStatus(args, taskDB)
+
+      expect(taskDB.getCurrentInProgressTask()).toBe(taskID)
+    })
+
+    it('should clear current in-progress task when completing task in single agent mode', async () => {
+      const taskDB = new TaskDB(true) // Enable single agent mode
+      const taskID = TaskIDSchema.parse('task123')
+
+      taskDB.set(taskID, {
+        taskID,
+        currentStatus: 'in-progress' as any,
+        title: 'Test Task',
+        description: 'Test description',
+        goal: 'Test goal',
+        definitionsOfDone: ['Initial DoD'],
+        dependsOnTaskIDs: [],
+      })
+
+      // Set initial current task
+      taskDB.setCurrentInProgressTask(taskID)
+      expect(taskDB.getCurrentInProgressTask()).toBe(taskID)
+
+      const args = {
+        taskID,
+        newStatus: TaskStatusSchema.parse('complete'),
+        outcomeDetails: ['Task completed successfully'],
+        verificationEvidence: ['All tests passed'],
+      }
+
+      await handleTransitionTaskStatus(args, taskDB)
+
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+    })
+
+    it('should not track current in-progress task in normal mode', async () => {
+      const taskDB = new TaskDB()
+      const taskID = TaskIDSchema.parse('task123')
+
+      taskDB.set(taskID, {
+        taskID,
+        currentStatus: 'not-started' as any,
+        title: 'Test Task',
+        description: 'Test description',
+        goal: 'Test goal',
+        definitionsOfDone: ['Initial DoD'],
+        dependsOnTaskIDs: [],
+        uncertaintyAreasUpdated: true,
+      })
+
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+
+      const args = {
+        taskID,
+        newStatus: TaskStatusSchema.parse('in-progress'),
+      }
+
+      await handleTransitionTaskStatus(args, taskDB)
+
+      // Should still be undefined in normal mode
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+    })
+
+    it('should update current task when transitioning from complete back to in-progress in single agent mode', async () => {
+      const taskDB = new TaskDB(true) // Enable single agent mode
+      const taskID = TaskIDSchema.parse('task123')
+
+      taskDB.set(taskID, {
+        taskID,
+        currentStatus: 'complete' as any,
+        title: 'Test Task',
+        description: 'Test description',
+        goal: 'Test goal',
+        definitionsOfDone: ['Initial DoD'],
+        dependsOnTaskIDs: [],
+      })
+
+      expect(taskDB.getCurrentInProgressTask()).toBeUndefined()
+
+      const args = {
+        taskID,
+        newStatus: TaskStatusSchema.parse('in-progress'),
+      }
+
+      await handleTransitionTaskStatus(args, taskDB)
+
+      expect(taskDB.getCurrentInProgressTask()).toBe(taskID)
+    })
+
+    it('should throw error for non-existent task in single agent mode', async () => {
+      const taskDB = new TaskDB(true) // Enable single agent mode
+      const nonExistentTaskID = TaskIDSchema.parse('non-existent-task')
+
+      const args = {
+        taskID: nonExistentTaskID,
+        newStatus: TaskStatusSchema.parse('in-progress'),
+      }
+
+      await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
+        `Invalid status transition: Unknown task ID: ${nonExistentTaskID}. Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
+      )
+    })
+  })
 })

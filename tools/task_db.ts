@@ -13,7 +13,14 @@ export type Task = {
 }
 
 export class TaskDB {
+  private singleAgent: boolean
+
   private store = new Map<TaskID, Task>()
+  private currentInProgressTask: TaskID | undefined
+
+  constructor(singleAgent = false) {
+    this.singleAgent = singleAgent
+  }
 
   set(taskID: TaskID, task: Task) {
     this.store.set(taskID, task)
@@ -62,5 +69,19 @@ export class TaskDB {
     }
 
     return resultIDs.map((id) => this.get(id)!)
+  }
+
+  get isSingleAgent() {
+    return this.singleAgent
+  }
+
+  getCurrentInProgressTask() {
+    return this.singleAgent ? this.currentInProgressTask : undefined
+  }
+
+  setCurrentInProgressTask(taskID: TaskID | undefined) {
+    if (this.singleAgent) {
+      this.currentInProgressTask = taskID
+    }
   }
 }

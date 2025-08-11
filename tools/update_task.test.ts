@@ -258,4 +258,19 @@ describe('update_task handler', () => {
     const result4 = await handleUpdateTask(args, taskDB)
     expect(result4.structuredContent.tasksCreated?.length ?? 0).toBe(1)
   })
+
+  it('should throw error for non-existent task in single agent mode', async () => {
+    const taskDB = new TaskDB(true) // Enable single agent mode
+    const taskID = TaskIDSchema.parse('non-existent-task')
+
+    const args = {
+      taskID,
+      newDependsOnTaskIDs: [],
+      newUncertaintyAreas: [],
+    }
+
+    await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
+      `Invalid task update: Unknown task ID: ${taskID}. Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
+    )
+  })
 })

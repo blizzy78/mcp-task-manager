@@ -39,7 +39,13 @@ export async function handleUpdateTask(
 ) {
   const task = taskDB.get(taskID)
   if (!task) {
-    throw new Error(`Invalid task update: Unknown task ID: ${taskID}`)
+    throw new Error(
+      `Invalid task update: Unknown task ID: ${taskID}.${
+        taskDB.isSingleAgent
+          ? ` Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
+          : ''
+      }`
+    )
   }
 
   if (task.currentStatus === 'complete') {

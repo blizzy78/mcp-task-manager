@@ -26,7 +26,9 @@ Can optionally provide a list of additional dependencies, uncertainty areas, and
 export async function handleUpdateTask({ taskID, newDependsOnTaskIDs, newUncertaintyAreas, newDefinitionsOfDone }, taskDB) {
     const task = taskDB.get(taskID);
     if (!task) {
-        throw new Error(`Invalid task update: Unknown task ID: ${taskID}`);
+        throw new Error(`Invalid task update: Unknown task ID: ${taskID}.${taskDB.isSingleAgent
+            ? ` Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
+            : ''}`);
     }
     if (task.currentStatus === 'complete') {
         throw new Error(`Invalid task update: Task '${taskID}' is already complete. Use 'transition_task_status' tool to transition task status to 'in-progress' first.`);

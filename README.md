@@ -68,8 +68,45 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
 4. `task_info`
    - A tool to retrieve full information about a task
    - Inputs:
-     - `taskID` (string): The identifier of this task
+     - `taskID` (string, optional in single agent mode): The identifier of this task
+   - Behavior:
+     - In normal mode: `taskID` is required and the tool returns information for the specified task
+     - In single agent mode (when `SINGLE_AGENT=true`): If no `taskID` is provided, returns information for the current in-progress task
    - Returns: The complete stored task object `{ taskID, currentStatus, title, description, goal, readonly, definitionsOfDone, dependsOnTaskIDs }`
+
+
+## Single Agent Mode
+
+The task manager supports a special "single agent mode" that can be enabled by setting the environment variable `SINGLE_AGENT=true`. In this mode, the server tracks which task is currently in progress, enabling enhanced workflows for single-agent scenarios.
+
+This is useful for long-running agents where the agent loop is compacting/summarizing the agent's conversation history to prevent exceeding the context window limit. In these cases, the agent may "forget" which tasks exist because the task IDs have been removed from the context window. Single agent mode allows the agent to use the `task_info` tool without needing to specify a `taskID`, enabling it to regain information about the current task tree.
+
+**Do not enable single agent mode if you plan to use this MCP server with multiple agents at the same time. If enabled, only one agent should use the MCP server at any one time.**
+
+
+### Enabling Single Agent Mode
+
+Set the environment variable before starting the server:
+
+```bash
+SINGLE_AGENT=true npx @blizzy/mcp-task-manager
+```
+
+Or in Claude Desktop configuration:
+
+```json
+{
+  "mcpServers": {
+    "task-manager": {
+      "command": "npx",
+      "args": ["-y", "@blizzy/mcp-task-manager"],
+      "env": {
+        "SINGLE_AGENT": "true"
+      }
+    }
+  }
+}
+```
 
 
 ## Recommended Agent Prompt Snippets
@@ -158,7 +195,10 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
     "servers": {
       "task-manager": {
         "command": "npx",
-        "args": ["-y", "@blizzy/mcp-task-manager"]
+        "args": ["-y", "@blizzy/mcp-task-manager"],
+        "env": {
+          "SINGLE_AGENT": "false"
+        }
       }
     }
   }
