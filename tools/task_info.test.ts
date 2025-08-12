@@ -154,4 +154,204 @@ describe('task_info handler', () => {
       await expect(handleTaskInfo({}, taskDB)).rejects.toThrow('Invalid task info request: Unknown task ID: undefined')
     })
   })
+
+  describe('executionConstraints', () => {
+    it('should include readonly constraint for in-progress readonly task', async () => {
+      const taskDB = new TaskDB()
+      const createResult = await handleCreateTask(
+        {
+          title: 'Readonly Task',
+          description: 'Task that is readonly',
+          goal: 'Test readonly goal',
+          definitionsOfDone: ['Readonly DoD'],
+          dependsOnTaskIDs: [],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+
+      const taskID = createResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      // Mark task as readonly and transition to in-progress
+      const task = taskDB.get(taskID)!
+      task.readonly = true
+      task.uncertaintyAreasUpdated = true
+      taskDB.set(taskID, task)
+
+      await handleTransitionTaskStatus({ taskID, newStatus: TaskStatusSchema.parse('in-progress') }, taskDB)
+
+      const infoResult = await handleTaskInfo({ taskID }, taskDB)
+
+      expect(infoResult.structuredContent.executionConstraints).toContain(
+        `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making any permanent changes, editing code or any other content is not allowed.`
+      )
+    })
+
+    it('should include dependency constraint when task has incomplete dependencies', async () => {
+      const taskDB = new TaskDB()
+
+      // Create a dependency task that's not complete
+      const depResult = await handleCreateTask(
+        {
+          title: 'Dependency Task',
+          description: 'Dependency that is not complete',
+          goal: 'Dependency goal',
+          definitionsOfDone: ['Dep DoD'],
+          dependsOnTaskIDs: [],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+      const depTaskID = depResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      // Create main task with dependency
+      const createResult = await handleCreateTask(
+        {
+          title: 'Main Task',
+          description: 'Task with dependency',
+          goal: 'Main goal',
+          definitionsOfDone: ['Main DoD'],
+          dependsOnTaskIDs: [depTaskID],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+
+      const taskID = createResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      const infoResult = await handleTaskInfo({ taskID }, taskDB)
+
+      expect(infoResult.structuredContent.executionConstraints).toContain(
+        `Dependencies of task '${taskID}' must be completed first before this task can be started.`
+      )
+    })
+
+    it('should include definitions of done constraint for in-progress task with definitions', async () => {
+      const taskDB = new TaskDB()
+      const createResult = await handleCreateTask(
+        {
+          title: 'Task with DoD',
+          description: 'Task with definitions of done',
+          goal: 'Test goal with definitions',
+          definitionsOfDone: ['Definition 1', 'Definition 2'],
+          dependsOnTaskIDs: [],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+
+      const taskID = createResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      // Transition to in-progress
+      await handleTransitionTaskStatus({ taskID, newStatus: TaskStatusSchema.parse('in-progress') }, taskDB)
+
+      const infoResult = await handleTaskInfo({ taskID }, taskDB)
+
+      expect(infoResult.structuredContent.executionConstraints).toContain(
+        `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`
+      )
+    })
+
+    it('should include multiple constraints when applicable', async () => {
+      const taskDB = new TaskDB()
+
+      // Create incomplete dependency
+      const depResult = await handleCreateTask(
+        {
+          title: 'Incomplete Dependency',
+          description: 'Dependency task',
+          goal: 'Dependency goal',
+          definitionsOfDone: ['Dep DoD'],
+          dependsOnTaskIDs: [],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+      const depTaskID = depResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      // Create readonly task with dependency and definitions
+      const createResult = await handleCreateTask(
+        {
+          title: 'Complex Task',
+          description: 'Readonly task with dependency and definitions',
+          goal: 'Complex goal',
+          definitionsOfDone: ['Complex DoD'],
+          dependsOnTaskIDs: [depTaskID],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+
+      const taskID = createResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      // Mark task as readonly and set uncertainty areas updated
+      const task = taskDB.get(taskID)!
+      task.readonly = true
+      task.uncertaintyAreasUpdated = true
+      taskDB.set(taskID, task)
+
+      // Transition to in-progress
+      await handleTransitionTaskStatus({ taskID, newStatus: TaskStatusSchema.parse('in-progress') }, taskDB)
+
+      const infoResult = await handleTaskInfo({ taskID }, taskDB)
+
+      expect(infoResult.structuredContent.executionConstraints).toHaveLength(2)
+      expect(infoResult.structuredContent.executionConstraints).toContain(
+        `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making any permanent changes, editing code or any other content is not allowed.`
+      )
+      expect(infoResult.structuredContent.executionConstraints).toContain(
+        `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`
+      )
+    })
+
+    it('should not include executionConstraints when there are no constraints', async () => {
+      const taskDB = new TaskDB()
+      const createResult = await handleCreateTask(
+        {
+          title: 'Simple Task',
+          description: 'Simple task without constraints',
+          goal: 'Simple goal',
+          definitionsOfDone: [],
+          dependsOnTaskIDs: [],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+
+      const taskID = createResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      const infoResult = await handleTaskInfo({ taskID }, taskDB)
+
+      expect(infoResult.structuredContent.executionConstraints).toBeUndefined()
+    })
+
+    it('should not include readonly constraint for readonly task that is not in-progress', async () => {
+      const taskDB = new TaskDB()
+      const createResult = await handleCreateTask(
+        {
+          title: 'Readonly Not Started',
+          description: 'Readonly task that is not started',
+          goal: 'Readonly goal',
+          definitionsOfDone: ['Readonly DoD'],
+          dependsOnTaskIDs: [],
+          uncertaintyAreas: [],
+        },
+        taskDB
+      )
+
+      const taskID = createResult.structuredContent.tasksCreated.at(-1)!.taskID
+
+      // Mark task as readonly but keep it not-started
+      const task = taskDB.get(taskID)!
+      task.readonly = true
+      taskDB.set(taskID, task)
+
+      const infoResult = await handleTaskInfo({ taskID }, taskDB)
+
+      // Should not have readonly constraint since task is not in-progress
+      const constraints = infoResult.structuredContent.executionConstraints || []
+      const hasReadonlyConstraint = constraints.some((c) => typeof c === 'string' && c.includes('read-only'))
+      expect(hasReadonlyConstraint).toBe(false)
+    })
+  })
 })

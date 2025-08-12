@@ -58,6 +58,25 @@ export async function handleTaskInfo({ taskID }: TaskInfoArgs | TaskInfoArgsSing
     )
   }
 
+  const executionConstraints = [
+    task.currentStatus === 'in-progress' &&
+      task.readonly &&
+      `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making ` +
+        'any permanent changes, editing code or any other content is not allowed.',
+
+    task.currentStatus === 'in-progress' &&
+      !task.readonly &&
+      `Task '${taskID}' is read-write: You are allowed to make changes.`,
+
+    task.currentStatus === 'not-started' &&
+      task.dependsOnTaskIDs.map((id) => taskDB.get(id)!).some((t) => t.currentStatus !== 'complete') &&
+      `Dependencies of task '${taskID}' must be completed first before this task can be started.`,
+
+    task.currentStatus === 'in-progress' &&
+      task.definitionsOfDone.length > 0 &&
+      `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,
+  ].filter(Boolean)
+
   const res = {
     task: {
       ...task,
@@ -65,6 +84,8 @@ export async function handleTaskInfo({ taskID }: TaskInfoArgs | TaskInfoArgsSing
       // we don't want them to see this
       uncertaintyAreasUpdated: undefined,
     } satisfies Task,
+
+    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
 
     allTaskIDsInTree: returnAllTaskIDsInTree ? taskDB.getAllInTree(task.taskID).map((t) => t.taskID) : undefined,
   }

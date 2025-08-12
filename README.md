@@ -29,7 +29,7 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
      - Uncertainty area tasks are created as readonly tasks with titles like "Resolve uncertainty: {area.title} for task: {taskTitle}"
      - Any provided `dependsOnTaskIDs` are also applied as dependencies of each uncertainty-area task
      - Only one task can be `in-progress` at a time across the entire task tree
-   - Returns: Confirmation including a list of `tasksCreated` (uncertainty-area tasks first, then the main task) and `executionConstraints` with dependency and rule information
+   - Returns: Confirmation including a list of `tasksCreated` (uncertainty-area tasks first, then the main task) and `executionConstraints` with constraint information when applicable
 
 2. `update_task`
    - A tool to update an existing task
@@ -45,7 +45,7 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
      - If `newDefinitionsOfDone` are provided, they are added to the task's existing definitions of done
      - If the target task is already `complete`, the operation fails
      - This operation does not update existing uncertainty-area tasks or their statuses
-   - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`, plus `executionConstraints` about uncertainty areas that need updating
+   - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`, plus `executionConstraints` with constraint information when applicable
 
 3. `transition_task_status`
    - A tool to transition the status of a task
@@ -63,7 +63,7 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
      - Tasks must have their uncertainty areas updated before they can be started
      - Only one task can be `in-progress` at a time across the entire task tree
      - Before starting a task, it must have its `uncertaintyAreasUpdated` flag set (done via `update_task`)
-   - Returns: Status transition confirmation including `taskUpdated` and `executionConstraints` with readonly warnings and definitions of done reminders
+   - Returns: Status transition confirmation including `taskUpdated` and `executionConstraints` with constraint information when applicable
 
 4. `task_info`
    - A tool to retrieve full information about a task
@@ -72,7 +72,7 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
    - Behavior:
      - In normal mode: `taskID` is required and the tool returns information for the specified task
      - In single agent mode (when `SINGLE_AGENT=true`): If no `taskID` is provided, returns information for the current in-progress task
-   - Returns: The complete stored task object `{ taskID, currentStatus, title, description, goal, readonly, definitionsOfDone, dependsOnTaskIDs }`
+   - Returns: The complete stored task object `{ taskID, currentStatus, title, description, goal, readonly, definitionsOfDone, dependsOnTaskIDs }` and `executionConstraints` with constraint information when applicable
 
 
 ## Single Agent Mode

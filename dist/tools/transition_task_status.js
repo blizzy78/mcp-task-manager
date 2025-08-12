@@ -101,6 +101,7 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
             task.readonly &&
             `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making ` +
                 'any permanent changes, editing code or any other content is not allowed.',
+        newStatus === 'in-progress' && !task.readonly && `Task '${taskID}' is read-write: You are allowed to make changes.`,
         newStatus === 'in-progress' &&
             task.definitionsOfDone.length > 0 &&
             `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,

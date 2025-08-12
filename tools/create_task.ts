@@ -71,14 +71,14 @@ export async function handleCreateTask(
     taskDB.set(newTask.taskID, newTask)
   }
 
-  const tasksWithoutUncertaintyAreas = taskDB.getAllInTree(task.taskID).filter((t) => !t.uncertaintyAreasUpdated)
+  const tasksWithoutUncertaintyAreasUpdated = taskDB.getAllInTree(task.taskID).filter((t) => !t.uncertaintyAreasUpdated)
 
   const executionConstraints = [
-    newUncertaintyAreaTasks.length > 0 &&
+    task.dependsOnTaskIDs.map((id) => taskDB.get(id)!).some((t) => t.currentStatus !== 'complete') &&
       `Dependencies of task '${task.taskID}' must be completed first before this task can be started.`,
 
-    tasksWithoutUncertaintyAreas.length > 0 &&
-      `Uncertainty areas must be updated for tasks: ${tasksWithoutUncertaintyAreas
+    tasksWithoutUncertaintyAreasUpdated.length > 0 &&
+      `Uncertainty areas must be updated for tasks: ${tasksWithoutUncertaintyAreasUpdated
         .map((t) => `'${t.taskID}'`)
         .join(', ')}. Use 'update_task' tool to do so.`,
 

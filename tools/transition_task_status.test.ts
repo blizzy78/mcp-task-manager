@@ -362,7 +362,7 @@ describe('transition_task_status handler', () => {
     )
   })
 
-  it('should not include execution constraints for non-readonly task without definitions', async () => {
+  it('should include execution constraints for non-readonly task without definitions', async () => {
     const taskDB = new TaskDB()
     const taskID = TaskIDSchema.parse('simple-task')
 
@@ -384,7 +384,9 @@ describe('transition_task_status handler', () => {
 
     const result = await handleTransitionTaskStatus(args, taskDB)
 
-    expect(result.structuredContent.executionConstraints).toBeUndefined()
+    expect(result.structuredContent.executionConstraints).toContain(
+      `Task '${taskID}' is read-write: You are allowed to make changes.`
+    )
   })
 
   it('should throw error for invalid transition from complete to not-started', async () => {
