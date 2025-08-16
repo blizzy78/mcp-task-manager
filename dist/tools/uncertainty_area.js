@@ -8,7 +8,7 @@ export function createUncertaintyAreaTasks(areas, taskTitle, taskDependsOnTaskID
     return areas.map((area) => ({
         taskID: newTaskID(),
         currentStatus: TaskStatusSchema.parse('not-started'),
-        title: `Resolve uncertainty: ${area.title} for task: ${taskTitle}`,
+        title: `Resolve uncertainty: ${area.title}`,
         description: `Gain understanding about: ${area.description}`,
         goal: `Resolve uncertainty: ${area.title}`,
         readonly: true,

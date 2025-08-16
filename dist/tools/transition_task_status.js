@@ -48,7 +48,7 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
                         throw new Error(`Invalid status transition: Only one task may be 'in-progress' at any one time. Task '${inProgressTaskInTree.taskID}' is already 'in-progress' and must be completed first.`);
                     }
                     if (!task.uncertaintyAreasUpdated) {
-                        throw new Error(`Invalid status transition: Uncertainty areas for task '${taskID}' must be updated before it can be started. Use 'update_task' tool to do so.`);
+                        throw new Error(`Invalid status transition: Must use 'update_task' tool to add uncertainty areas to task '${taskID}' before it can be 'in-progress'.`);
                     }
                     // okay
                     break;
@@ -115,13 +115,15 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
         executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
     };
     return {
-        content: [
-            {
-                type: 'text',
-                audience: ['assistant'],
-                text: JSON.stringify(res),
-            },
-        ],
+        content: executionConstraints.length > 0
+            ? [
+                {
+                    type: 'text',
+                    audience: ['assistant'],
+                    text: 'Pay attention to the task execution constraints.',
+                },
+            ]
+            : [],
         structuredContent: res,
     };
 }

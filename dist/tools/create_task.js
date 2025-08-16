@@ -55,12 +55,12 @@ export async function handleCreateTask({ title, description, goal, definitionsOf
     }
     const tasksWithoutUncertaintyAreasUpdated = taskDB.getAllInTree(task.taskID).filter((t) => !t.uncertaintyAreasUpdated);
     const executionConstraints = [
-        task.dependsOnTaskIDs.map((id) => taskDB.get(id)).some((t) => t.currentStatus !== 'complete') &&
-            `Dependencies of task '${task.taskID}' must be 'complete' first before this task can be 'in-progress'.`,
         tasksWithoutUncertaintyAreasUpdated.length > 0 &&
-            `Uncertainty areas must be updated for tasks: ${tasksWithoutUncertaintyAreasUpdated
+            `Must use 'update_task' tool to add uncertainty areas to these tasks before they can be 'in-progress': ${tasksWithoutUncertaintyAreasUpdated
                 .map((t) => `'${t.taskID}'`)
-                .join(', ')}. Use 'update_task' tool to do so.`,
+                .join(', ')}`,
+        task.dependsOnTaskIDs.map((id) => taskDB.get(id)).some((t) => t.currentStatus !== 'complete') &&
+            `Dependencies of task '${task.taskID}' must be 'complete' first before it can be 'in-progress'.`,
         taskDB.getAllInTree(task.taskID).filter((t) => t.currentStatus === 'not-started').length > 1 &&
             `Note: Only one task may be 'in-progress' at any one time.`,
     ].filter(Boolean);
@@ -73,13 +73,15 @@ export async function handleCreateTask({ title, description, goal, definitionsOf
         executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
     };
     return {
-        content: [
-            {
-                type: 'text',
-                audience: ['assistant'],
-                text: JSON.stringify(res),
-            },
-        ],
+        content: executionConstraints.length > 0
+            ? [
+                {
+                    type: 'text',
+                    audience: ['assistant'],
+                    text: 'Pay attention to the task execution constraints.',
+                },
+            ]
+            : [],
         structuredContent: res,
     };
 }

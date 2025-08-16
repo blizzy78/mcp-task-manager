@@ -73,7 +73,7 @@ export async function handleTransitionTaskStatus(
 
           if (!task.uncertaintyAreasUpdated) {
             throw new Error(
-              `Invalid status transition: Uncertainty areas for task '${taskID}' must be updated before it can be started. Use 'update_task' tool to do so.`
+              `Invalid status transition: Must use 'update_task' tool to add uncertainty areas to task '${taskID}' before it can be 'in-progress'.`
             )
           }
 
@@ -164,13 +164,16 @@ export async function handleTransitionTaskStatus(
   }
 
   return {
-    content: [
-      {
-        type: 'text',
-        audience: ['assistant'],
-        text: JSON.stringify(res),
-      } satisfies TextContent,
-    ],
+    content:
+      executionConstraints.length > 0
+        ? [
+            {
+              type: 'text',
+              audience: ['assistant'],
+              text: 'Pay attention to the task execution constraints.',
+            } satisfies TextContent,
+          ]
+        : [],
 
     structuredContent: res,
   } satisfies ToolResult

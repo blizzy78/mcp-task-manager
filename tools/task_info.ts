@@ -85,19 +85,22 @@ export async function handleTaskInfo({ taskID }: TaskInfoArgs | TaskInfoArgsSing
       uncertaintyAreasUpdated: undefined,
     } satisfies Task,
 
-    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
-
     allTaskIDsInTree: returnAllTaskIDsInTree ? taskDB.getAllInTree(task.taskID).map((t) => t.taskID) : undefined,
+
+    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
   }
 
   return {
-    content: [
-      {
-        type: 'text',
-        audience: ['assistant'],
-        text: JSON.stringify(res),
-      } satisfies TextContent,
-    ],
+    content:
+      executionConstraints.length > 0
+        ? [
+            {
+              type: 'text',
+              audience: ['assistant'],
+              text: 'Pay attention to the task execution constraints.',
+            } satisfies TextContent,
+          ]
+        : [],
 
     structuredContent: res,
   } satisfies ToolResult

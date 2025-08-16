@@ -36,18 +36,19 @@ Note: When using this MCP server, you should disable the Todo List tool in VS Co
 2. `update_task`
    - A tool to update an existing task
    - Inputs:
-     - `taskID` (string): The identifier of the task to update
-     - `newDependsOnTaskIDs` (array of strings): Additional dependency task IDs to apply to newly created uncertainty tasks
-     - `newDefinitionsOfDone` (array of strings, optional): Additional criteria that must be met for this task to be considered complete
-     - `newUncertaintyAreas` (array of objects): New areas requiring clarification to add as separate tasks, each containing:
-       - `title` (string)
-       - `description` (string)
+     - `updates` (array of objects): A list of updates to apply to existing tasks, each containing:
+       - `taskID` (string): The identifier of this task
+       - `newDependsOnTaskIDs` (array of strings): A list of additional task identifiers this task depends on
+       - `newDefinitionsOfDone` (array of strings, optional): A detailed list of additional criteria that must be met for this task to be considered complete
+       - `newUncertaintyAreas` (array of objects): A detailed list of additional areas where there is uncertainty about this task's requirements or execution, each containing:
+         - `title` (string): A concise title for this uncertainty area
+         - `description` (string): A description of this uncertainty area
    - Behavior:
      - If `newDefinitionsOfDone` are provided, they are added to the task's existing definitions of done
      - Creates a separate task for each `newUncertaintyArea` (status `not-started`), applies `newDependsOnTaskIDs` to those tasks, and adds these newly created tasks as dependencies of the target `taskID`
      - If the target task is already `complete`, the operation fails
      - This operation does not update existing uncertainty-area tasks or their statuses
-   - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`, plus `executionConstraints` with constraint information when applicable
+   - Returns: Confirmation including `tasksUpdated` (array of updated tasks) and, if any were created, `tasksCreated`, plus `executionConstraints` with constraint information when applicable
 
 3. `transition_task_status`
    - A tool to transition the status of a task
@@ -74,7 +75,7 @@ Note: When using this MCP server, you should disable the Todo List tool in VS Co
    - Behavior:
      - In normal mode: `taskID` is required and the tool returns information for the specified task
      - In single agent mode (when `SINGLE_AGENT=true`): If no `taskID` is provided, returns information for the current in-progress task
-   - Returns: The complete stored task object `{ taskID, currentStatus, title, description, goal, readonly, definitionsOfDone, dependsOnTaskIDs }` and `executionConstraints` with constraint information when applicable
+   - Returns: The complete stored task object and `executionConstraints` with constraint information when applicable
 
 
 ## Single Agent Mode

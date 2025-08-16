@@ -57,17 +57,19 @@ export async function handleTaskInfo({ taskID }, taskDB) {
             // we don't want them to see this
             uncertaintyAreasUpdated: undefined,
         },
-        executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
         allTaskIDsInTree: returnAllTaskIDsInTree ? taskDB.getAllInTree(task.taskID).map((t) => t.taskID) : undefined,
+        executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
     };
     return {
-        content: [
-            {
-                type: 'text',
-                audience: ['assistant'],
-                text: JSON.stringify(res),
-            },
-        ],
+        content: executionConstraints.length > 0
+            ? [
+                {
+                    type: 'text',
+                    audience: ['assistant'],
+                    text: 'Pay attention to the task execution constraints.',
+                },
+            ]
+            : [],
         structuredContent: res,
     };
 }

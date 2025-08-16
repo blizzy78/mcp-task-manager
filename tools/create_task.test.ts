@@ -20,7 +20,7 @@ describe('create_task handler', () => {
     expect(result).toHaveProperty('content')
     expect(result).toHaveProperty('structuredContent')
     expect(result.content).toBeInstanceOf(Array)
-    expect(result.content).toHaveLength(1)
+    expect(result.content).toHaveLength(0)
     expect(result.structuredContent).toHaveProperty('tasksCreated')
     expect(result.structuredContent.tasksCreated[0].currentStatus).toBe('not-started')
     expect(result.structuredContent.tasksCreated.at(-1)!.title).toBe('Test Task')

@@ -20,10 +20,14 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [{ title: 'Updated uncertainty', description: 'Updated uncertainty' }],
-      newDefinitionsOfDone: ['Updated DoD'],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [{ title: 'Updated uncertainty', description: 'Updated uncertainty' }],
+          newDefinitionsOfDone: ['Updated DoD'],
+        },
+      ],
     }
 
     const result = await handleUpdateTask(args, taskDB)
@@ -32,8 +36,8 @@ describe('update_task handler', () => {
     expect(result).toHaveProperty('structuredContent')
     expect(result.content).toBeInstanceOf(Array)
     expect(result.content).toHaveLength(1)
-    expect(result.content[0].text).toContain('task123')
-    expect(result.structuredContent.taskUpdated.title).toBe('Test Task')
+    expect(result.content[0].text).toBe('Pay attention to the task execution constraints.')
+    expect(result.structuredContent.tasksUpdated[0].title).toBe('Test Task')
   })
 
   it('should handle tasks with no uncertainty areas', async () => {
@@ -52,14 +56,18 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [],
+        },
+      ],
     }
 
     const result = await handleUpdateTask(args, taskDB)
 
-    expect(result.content[0].text).not.toContain('uncertainty areas')
+    expect(result.content).toHaveLength(0)
   })
 
   it('should handle tasks with resolved uncertainty areas', async () => {
@@ -78,9 +86,13 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [{ title: 'Resolved issue', description: 'Issue was resolved' }],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [{ title: 'Resolved issue', description: 'Issue was resolved' }],
+        },
+      ],
     }
 
     const result = await handleUpdateTask(args, taskDB)
@@ -104,11 +116,15 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [
-        { title: 'Open issue', description: 'Open issue' },
-        { title: 'Resolved issue', description: 'Issue was resolved' },
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [
+            { title: 'Open issue', description: 'Open issue' },
+            { title: 'Resolved issue', description: 'Issue was resolved' },
+          ],
+        },
       ],
     }
 
@@ -122,9 +138,13 @@ describe('update_task handler', () => {
     const taskID = TaskIDSchema.parse('non-existent-task')
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [],
+        },
+      ],
     }
 
     await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
@@ -148,9 +168,13 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
-      newUncertaintyAreas: [],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
+          newUncertaintyAreas: [],
+        },
+      ],
     }
 
     await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
@@ -174,9 +198,13 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
-      newUncertaintyAreas: [],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [TaskIDSchema.parse('non-existent-dep')],
+          newUncertaintyAreas: [],
+        },
+      ],
     }
 
     await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
@@ -200,9 +228,13 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [{ title: 'Updated area', description: 'Fixed' }],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [{ title: 'Updated area', description: 'Fixed' }],
+        },
+      ],
     }
 
     const result2 = await handleUpdateTask(args, taskDB)
@@ -225,9 +257,13 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [{ title: 'Updated area', description: 'Updated area' }],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [{ title: 'Updated area', description: 'Updated area' }],
+        },
+      ],
     }
 
     const result3 = await handleUpdateTask(args, taskDB)
@@ -250,9 +286,13 @@ describe('update_task handler', () => {
     })
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [{ title: 'Resolved area', description: 'Resolved area' }],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [{ title: 'Resolved area', description: 'Resolved area' }],
+        },
+      ],
     }
 
     const result4 = await handleUpdateTask(args, taskDB)
@@ -264,9 +304,13 @@ describe('update_task handler', () => {
     const taskID = TaskIDSchema.parse('non-existent-task')
 
     const args = {
-      taskID,
-      newDependsOnTaskIDs: [],
-      newUncertaintyAreas: [],
+      updates: [
+        {
+          taskID,
+          newDependsOnTaskIDs: [],
+          newUncertaintyAreas: [],
+        },
+      ],
     }
 
     await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(

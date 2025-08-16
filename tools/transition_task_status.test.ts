@@ -28,8 +28,8 @@ describe('transition_task_status handler', () => {
 
     expect(result).toHaveProperty('content')
     expect(result).toHaveProperty('structuredContent')
-    expect(result.content[0].text).toContain('task123')
-    expect(result.content[0].text).toContain('in-progress')
+    expect(result.content[0].text).toBe('Pay attention to the task execution constraints.')
+    expect(result.structuredContent.taskUpdated.currentStatus).toBe('in-progress')
   })
 
   it('should transition from in-progress to complete with outcome details', async () => {
@@ -55,8 +55,8 @@ describe('transition_task_status handler', () => {
 
     const result = await handleTransitionTaskStatus(args, taskDB)
 
-    expect(result.content[0].text).toContain('task123')
-    expect(result.content[0].text).toContain('complete')
+    expect(result.content).toHaveLength(0)
+    expect(result.structuredContent.taskUpdated.currentStatus).toBe('complete')
   })
 
   it('should throw error for invalid transition', async () => {
@@ -186,8 +186,8 @@ describe('transition_task_status handler', () => {
 
     const result = await handleTransitionTaskStatus(args, taskDB)
 
-    expect(result.content[0].text).toContain('task123')
-    expect(result.content[0].text).toContain('in-progress')
+    expect(result.content[0].text).toBe('Pay attention to the task execution constraints.')
+    expect(result.structuredContent.taskUpdated.currentStatus).toBe('in-progress')
   })
 
   it('should handle successful transition with dependencies', async () => {
@@ -223,8 +223,8 @@ describe('transition_task_status handler', () => {
 
     const result = await handleTransitionTaskStatus(args, taskDB)
 
-    expect(result.content[0].text).toContain('task123')
-    expect(result.content[0].text).toContain('in-progress')
+    expect(result.content[0].text).toBe('Pay attention to the task execution constraints.')
+    expect(result.structuredContent.taskUpdated.currentStatus).toBe('in-progress')
   })
 
   it('should throw error for invalid old status', async () => {
@@ -435,8 +435,8 @@ describe('transition_task_status handler', () => {
 
     const result = await handleTransitionTaskStatus(args, taskDB)
 
-    expect(result.content[0].text).toContain('task123')
-    expect(result.content[0].text).toContain('complete')
+    expect(result.content).toHaveLength(0)
+    expect(result.structuredContent.taskUpdated.currentStatus).toBe('complete')
   })
 
   it('should throw error when transitioning not-started task without uncertainty areas updated', async () => {
@@ -460,7 +460,7 @@ describe('transition_task_status handler', () => {
     }
 
     await expect(handleTransitionTaskStatus(args, taskDB)).rejects.toThrow(
-      `Invalid status transition: Uncertainty areas for task '${taskID}' must be updated before it can be started. Use 'update_task' tool to do so.`
+      `Invalid status transition: Must use 'update_task' tool to add uncertainty areas to task '${taskID}' before it can be 'in-progress'.`
     )
   })
 
