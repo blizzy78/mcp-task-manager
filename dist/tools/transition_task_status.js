@@ -10,14 +10,14 @@ export const TransitionTaskStatusArgsSchema = z.object({
         .array()
         .min(1)
         .optional()
-        .describe(`A detailed list of outcomes of this task. Must be provided if newStatus is 'complete'.`),
+        .describe(`A detailed list of outcomes of this task. Must be understandable out of context. Must be provided if newStatus is 'complete'.`),
     verificationEvidence: z
         .string()
         .min(1)
         .array()
         .min(1)
         .optional()
-        .describe(`A list of verification evidence for task completion. Must be provided if newStatus is 'complete'.`),
+        .describe(`A list of verification evidence for task completion. Must be understandable out of context. Must be provided if newStatus is 'complete'.`),
 });
 export const TRANSITION_TASK_STATUS = 'transition_task_status';
 export const transitionTaskStatusTool = {
@@ -104,7 +104,7 @@ export async function handleTransitionTaskStatus({ taskID, newStatus, outcomeDet
         newStatus === 'in-progress' && !task.readonly && `Task '${taskID}' is read-write: You are allowed to make changes.`,
         newStatus === 'in-progress' &&
             task.definitionsOfDone.length > 0 &&
-            `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,
+            `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`,
     ].filter(Boolean);
     const res = {
         taskUpdated: {

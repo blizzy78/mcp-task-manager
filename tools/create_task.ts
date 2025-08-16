@@ -7,19 +7,25 @@ import type { TextContent, ToolResult } from './tools.js'
 import { createUncertaintyAreaTasks, UncertaintyAreaSchema } from './uncertainty_area.js'
 
 export const CreateTaskArgsSchema = z.object({
-  title: z.string().min(1).describe('A concise title for this task.'),
-  description: z.string().min(1).describe('A detailed description of this task.'),
-  goal: z.string().min(1).describe('The overall goal of this task.'),
+  title: z.string().min(1).describe('A concise title for this task. Must be understandable out of context.'),
+  description: z
+    .string()
+    .min(1)
+    .describe('A detailed description of this task. Must be understandable out of context.'),
+  goal: z.string().min(1).describe('The overall goal of this task. Must be understandable out of context.'),
+  dependsOnTaskIDs: TaskIDSchema.array().describe(
+    "A list of task identifiers this task depends on. Must be provided if these tasks must be 'complete' before this task can be 'in-progress'."
+  ),
   definitionsOfDone: z
     .string()
     .min(1)
     .array()
-    .describe('A detailed list of criteria that must be met for this task to be considered complete.'),
-  dependsOnTaskIDs: TaskIDSchema.array().describe(
-    'A list of task identifiers this task depends on. Must be provided if these tasks must be complete before this task can be started.'
-  ),
+    .describe(
+      "A detailed list of criteria that must be met for this task to be considered 'complete'. Must be understandable out of context."
+    ),
   uncertaintyAreas: UncertaintyAreaSchema.array().describe(
-    "A detailed list of areas where there is uncertainty about this task's requirements or execution. May be empty. Ensure list is ordered by priority."
+    `A detailed list of areas where there is uncertainty about this task's requirements or execution.
+Must be understandable out of context. Must be ordered by priority. May be empty.`
   ),
 })
 
@@ -30,11 +36,10 @@ export const CREATE_TASK = 'create_task'
 export const createTaskTool = {
   name: CREATE_TASK,
   title: 'Create task',
-  description: `A tool to create a new task that must be completed.
-Can optionally provide a list of tasks that must be completed first.
-Should provide a list of uncertainty areas to clarify before starting this task.
-All tasks start in the 'not-started' status. Use the 'transition_task_status'
-tool to transition the status of this task.`,
+  description: `A tool to create a new task that must be performed.
+May optionally provide a list of tasks that must be 'complete' first.
+Should provide a list of uncertainty areas to clarify before starting this task, if applicable.
+All tasks start in the 'not-started' status. Use 'transition_task_status' tool to transition the status of this task.`,
   inputSchema: zodToJsonSchema(CreateTaskArgsSchema),
 }
 
@@ -75,7 +80,7 @@ export async function handleCreateTask(
 
   const executionConstraints = [
     task.dependsOnTaskIDs.map((id) => taskDB.get(id)!).some((t) => t.currentStatus !== 'complete') &&
-      `Dependencies of task '${task.taskID}' must be completed first before this task can be started.`,
+      `Dependencies of task '${task.taskID}' must be 'complete' first before this task can be 'in-progress'.`,
 
     tasksWithoutUncertaintyAreasUpdated.length > 0 &&
       `Uncertainty areas must be updated for tasks: ${tasksWithoutUncertaintyAreasUpdated

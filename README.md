@@ -8,7 +8,9 @@ This MCP server allows agents to manage tasks, including creating tasks with unc
 - **Manage uncertainty areas** by identifying and tracking areas that need resolution before task execution
 - **Orchestrate workflows** with proper dependency validation
 
-The tools have been tested extensively and successfully with Claude Sonnet 4. (GPT-4.1 and GPT-5 do not seem to work very well unfortunately.)
+The tools have been tested extensively and successfully with VS Code and Claude Sonnet 4. (GPT-4.1 and GPT-5 do not seem to work very well unfortunately.)
+
+Note: When using this MCP server, you should disable the Todo List tool in VS Code.
 
 
 ## Tools
@@ -19,8 +21,8 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
      - `title` (string): A concise title for this task
      - `description` (string): A detailed description of this task
      - `goal` (string): The overall goal of this task
-     - `definitionsOfDone` (array of strings): A detailed list of criteria that must be met for this task to be considered complete
      - `dependsOnTaskIDs` (array of strings): Task IDs this task depends on; referenced tasks must already exist
+     - `definitionsOfDone` (array of strings): A detailed list of criteria that must be met for this task to be considered complete
      - `uncertaintyAreas` (array of objects): Areas requiring clarification, each containing:
        - `title` (string): A concise title for this uncertainty area
        - `description` (string): A description of this uncertainty area
@@ -36,13 +38,13 @@ The tools have been tested extensively and successfully with Claude Sonnet 4. (G
    - Inputs:
      - `taskID` (string): The identifier of the task to update
      - `newDependsOnTaskIDs` (array of strings): Additional dependency task IDs to apply to newly created uncertainty tasks
+     - `newDefinitionsOfDone` (array of strings, optional): Additional criteria that must be met for this task to be considered complete
      - `newUncertaintyAreas` (array of objects): New areas requiring clarification to add as separate tasks, each containing:
        - `title` (string)
        - `description` (string)
-     - `newDefinitionsOfDone` (array of strings, optional): Additional criteria that must be met for this task to be considered complete
    - Behavior:
-     - Creates a separate task for each `newUncertaintyArea` (status `not-started`), applies `newDependsOnTaskIDs` to those tasks, and adds these newly created tasks as dependencies of the target `taskID`
      - If `newDefinitionsOfDone` are provided, they are added to the task's existing definitions of done
+     - Creates a separate task for each `newUncertaintyArea` (status `not-started`), applies `newDependsOnTaskIDs` to those tasks, and adds these newly created tasks as dependencies of the target `taskID`
      - If the target task is already `complete`, the operation fails
      - This operation does not update existing uncertainty-area tasks or their statuses
    - Returns: Confirmation including `taskUpdated` and, if any were created, `tasksCreated`, plus `executionConstraints` with constraint information when applicable
@@ -116,7 +118,9 @@ Or in Claude Desktop configuration:
 ```
 # Agent Instructions
 
-For any user request, DO THIS FIRST: Use the Task Management tools to create a new task for the user's request. Always add this uncertainty area as the first one to the task: 'Project configuration, such as test commands'.
+For any user request, DO THIS FIRST: Use the Task Management tools to create a new task for the user's request. Always add these uncertainty areas as the first ones to the task:
+1. Project overview as documented in README.md and CLAUDE.md
+2. Project configuration, such as test commands
 
 Resolve the user's request completely by performing all incomplete tasks. Doing so may include:
 

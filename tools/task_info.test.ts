@@ -222,7 +222,7 @@ describe('task_info handler', () => {
       const infoResult = await handleTaskInfo({ taskID }, taskDB)
 
       expect(infoResult.structuredContent.executionConstraints).toContain(
-        `Dependencies of task '${taskID}' must be completed first before this task can be started.`
+        `Dependencies of task '${taskID}' must be 'complete' first before this task can be 'in-progress'.`
       )
     })
 
@@ -248,7 +248,7 @@ describe('task_info handler', () => {
       const infoResult = await handleTaskInfo({ taskID }, taskDB)
 
       expect(infoResult.structuredContent.executionConstraints).toContain(
-        `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`
+        `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`
       )
     })
 
@@ -300,7 +300,7 @@ describe('task_info handler', () => {
         `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making any permanent changes, editing code or any other content is not allowed.`
       )
       expect(infoResult.structuredContent.executionConstraints).toContain(
-        `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`
+        `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`
       )
     })
 

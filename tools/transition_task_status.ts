@@ -13,14 +13,18 @@ export const TransitionTaskStatusArgsSchema = z.object({
     .array()
     .min(1)
     .optional()
-    .describe(`A detailed list of outcomes of this task. Must be provided if newStatus is 'complete'.`),
+    .describe(
+      `A detailed list of outcomes of this task. Must be understandable out of context. Must be provided if newStatus is 'complete'.`
+    ),
   verificationEvidence: z
     .string()
     .min(1)
     .array()
     .min(1)
     .optional()
-    .describe(`A list of verification evidence for task completion. Must be provided if newStatus is 'complete'.`),
+    .describe(
+      `A list of verification evidence for task completion. Must be understandable out of context. Must be provided if newStatus is 'complete'.`
+    ),
 })
 
 type TransitionTaskStatusArgs = z.infer<typeof TransitionTaskStatusArgsSchema>
@@ -145,7 +149,7 @@ export async function handleTransitionTaskStatus(
 
     newStatus === 'in-progress' &&
       task.definitionsOfDone.length > 0 &&
-      `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,
+      `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`,
   ].filter(Boolean)
 
   const res = {

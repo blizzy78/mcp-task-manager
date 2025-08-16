@@ -358,7 +358,7 @@ describe('transition_task_status handler', () => {
     const result = await handleTransitionTaskStatus(args, taskDB)
 
     expect(result.structuredContent.executionConstraints).toContain(
-      `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`
+      `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`
     )
   })
 

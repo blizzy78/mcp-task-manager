@@ -70,11 +70,11 @@ export async function handleTaskInfo({ taskID }: TaskInfoArgs | TaskInfoArgsSing
 
     task.currentStatus === 'not-started' &&
       task.dependsOnTaskIDs.map((id) => taskDB.get(id)!).some((t) => t.currentStatus !== 'complete') &&
-      `Dependencies of task '${taskID}' must be completed first before this task can be started.`,
+      `Dependencies of task '${taskID}' must be 'complete' first before this task can be 'in-progress'.`,
 
     task.currentStatus === 'in-progress' &&
       task.definitionsOfDone.length > 0 &&
-      `Definitions of done for task '${taskID}' must be met before this task can be considered complete.`,
+      `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`,
   ].filter(Boolean)
 
   const res = {
