@@ -1,26 +1,8 @@
-import { type TaskID, type TaskStatus } from './tasks.js'
-
-export type Task = {
-  taskID: TaskID
-  currentStatus: TaskStatus
-  title: string
-  description: string
-  goal: string
-  readonly?: boolean
-  definitionsOfDone: Array<string>
-  dependsOnTaskIDs: Array<TaskID>
-  uncertaintyAreasUpdated?: boolean
-}
+import { type Task, type TaskID } from './tasks.js'
 
 export class TaskDB {
-  private singleAgent: boolean
-
   private store = new Map<TaskID, Task>()
-  private currentInProgressTask: TaskID | undefined
-
-  constructor(singleAgent = false) {
-    this.singleAgent = singleAgent
-  }
+  private currentTaskID: TaskID | null = null
 
   set(taskID: TaskID, task: Task) {
     this.store.set(taskID, task)
@@ -28,6 +10,14 @@ export class TaskDB {
 
   get(taskID: TaskID) {
     return this.store.get(taskID)
+  }
+
+  setCurrentTask(taskID: TaskID) {
+    this.currentTaskID = taskID
+  }
+
+  getCurrentTask(): TaskID | null {
+    return this.currentTaskID
   }
 
   // TODO: this could be more efficient, but we're only dealing with a handful of tasks here
@@ -69,19 +59,5 @@ export class TaskDB {
     }
 
     return resultIDs.map((id) => this.get(id)!)
-  }
-
-  get isSingleAgent() {
-    return this.singleAgent
-  }
-
-  getCurrentInProgressTask() {
-    return this.singleAgent ? this.currentInProgressTask : undefined
-  }
-
-  setCurrentInProgressTask(taskID: TaskID | undefined) {
-    if (this.singleAgent) {
-      this.currentInProgressTask = taskID
-    }
   }
 }

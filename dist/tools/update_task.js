@@ -1,101 +1,154 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { dedup } from './arrays.js';
-import { TaskIDSchema } from './tasks.js';
-import { createUncertaintyAreaTasks, UncertaintyAreaSchema } from './uncertainty_area.js';
+import { DoneStatus, FailedStatus, TaskComplexitySchema, TaskCriticalPathSchema, TaskDefinitionsOfDoneSchema, TaskDescriptionSchema, TaskGoalSchema, TaskIDSchema, TaskStatusSchema, TaskTitleSchema, TaskUncertaintyAreasSchema, toBasicTaskInfo, TodoStatus, } from './tasks.js';
 const TaskUpdateSchema = z.object({
-    taskID: TaskIDSchema.describe('The identifier of this task.'),
-    newDependsOnTaskIDs: TaskIDSchema.array().describe('A list of additional task identifiers this task depends on.'),
-    newDefinitionsOfDone: z
-        .string()
-        .min(1)
-        .array()
-        .min(1)
+    taskID: TaskIDSchema.describe('The identifier of the task to change status'),
+    set: z
+        .object({
+        status: TaskStatusSchema.optional().describe('The new status of this task'),
+        title: TaskTitleSchema.optional(),
+        description: TaskDescriptionSchema.optional(),
+        goal: TaskGoalSchema.optional(),
+        criticalPath: TaskCriticalPathSchema.optional(),
+        estimatedComplexity: TaskComplexitySchema.optional(),
+    })
         .optional()
-        .describe("A detailed list of additional criteria that must be met for this task to be considered 'complete'. Must be understandable out of context."),
-    newUncertaintyAreas: UncertaintyAreaSchema.array().describe(`A detailed list of additional areas where there is uncertainty about this task's requirements or execution.
-Must be understandable out of context. Must be ordered by priority. May be empty.`),
+        .describe('Optional properties to update on this task'),
+    add: z
+        .object({
+        dependsOnTaskIDs: TaskIDSchema.array().min(1).optional().describe('New tasks that this task depends on'),
+        definitionsOfDone: TaskDefinitionsOfDoneSchema.optional(),
+        uncertaintyAreas: TaskUncertaintyAreasSchema.optional(),
+        lessonsLearned: z
+            .string()
+            .min(1)
+            .array()
+            .min(1)
+            .optional()
+            .describe('Lessons learned while executing this task that may inform future tasks'),
+        verificationEvidence: z
+            .string()
+            .min(1)
+            .array()
+            .min(1)
+            .optional()
+            .describe('Verification evidence that this task was executed as planned, and that the definitions of done were met'),
+    })
+        .optional()
+        .describe('Optional properties to add to this task'),
+    remove: z
+        .object({
+        dependsOnTaskIDs: TaskIDSchema.array().min(1).optional().describe('Tasks that this task no longer depends on'),
+    })
+        .optional()
+        .describe('Optional properties to remove from this task'),
 });
 export const UpdateTaskArgsSchema = z.object({
-    updates: TaskUpdateSchema.array().min(1).describe('A list of updates to apply to existing tasks.'),
+    tasks: TaskUpdateSchema.array().min(1).describe('The tasks to update'),
 });
 export const UPDATE_TASK = 'update_task';
 export const updateTaskTool = {
     name: UPDATE_TASK,
-    title: 'Update task',
-    description: `A tool to update an existing task.
-May optionally provide a list of additional dependencies, uncertainty areas, and definitions of done.`,
+    title: 'Update tasks',
+    description: `Updates the status and/or other properties of one or more tasks.
+Must use this tool before executing tasks, and when finished executing tasks.
+Should always include lessons learned to inform future tasks.
+Important: Always update multiple tasks in a single call if dependencies allow it.`,
     inputSchema: zodToJsonSchema(UpdateTaskArgsSchema),
 };
-export async function handleUpdateTask({ updates }, taskDB) {
-    for (const { taskID, newDependsOnTaskIDs } of updates) {
-        const task = taskDB.get(taskID);
-        if (!task) {
-            throw new Error(`Invalid task update: Unknown task ID: ${taskID}.${taskDB.isSingleAgent
-                ? ` Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
-                : ''}`);
-        }
-        if (task.currentStatus === 'complete') {
-            throw new Error(`Invalid task update: Task '${taskID}' is already complete. Use 'transition_task_status' tool to transition task status to 'in-progress' first.`);
-        }
-        for (const dependsOnTaskID of newDependsOnTaskIDs) {
-            const dependsOnTask = taskDB.get(dependsOnTaskID);
-            if (!dependsOnTask) {
-                throw new Error(`Invalid task update: Unknown dependency task: ${dependsOnTaskID}`);
-            }
-        }
+export async function handleUpdateTask({ tasks }, taskDB) {
+    const updatedTasks = new Array();
+    for (const taskUpdate of tasks) {
+        const task = handleUpdateSingleTask(taskUpdate, taskDB);
+        updatedTasks.push(task);
     }
-    const allNewUncertaintyAreaTasks = new Array();
-    for (const { taskID, newDependsOnTaskIDs, newDefinitionsOfDone, newUncertaintyAreas } of updates) {
-        const task = taskDB.get(taskID);
-        task.dependsOnTaskIDs.push(...newDependsOnTaskIDs);
-        const newUncertaintyAreaTasks = createUncertaintyAreaTasks(newUncertaintyAreas, task.title, task.dependsOnTaskIDs);
-        allNewUncertaintyAreaTasks.push(...newUncertaintyAreaTasks);
-        for (const uncertaintyAreaTask of newUncertaintyAreaTasks) {
-            taskDB.set(uncertaintyAreaTask.taskID, uncertaintyAreaTask);
-        }
-        task.dependsOnTaskIDs.push(...newUncertaintyAreaTasks.map((task) => task.taskID));
-        task.dependsOnTaskIDs = dedup(task.dependsOnTaskIDs);
-        if (newDefinitionsOfDone) {
-            task.definitionsOfDone.push(...newDefinitionsOfDone);
-        }
-        task.uncertaintyAreasUpdated = true;
-    }
-    const tasksUpdated = updates.map((u) => u.taskID).map((taskID) => taskDB.get(taskID));
-    const tasksInTreeWithoutUncertaintyAreas = taskDB
-        .getAllInTree(tasksUpdated[0].taskID)
-        .filter((t) => !t.uncertaintyAreasUpdated);
-    const executionConstraints = [
-        tasksInTreeWithoutUncertaintyAreas.length > 0 &&
-            `Must use 'update_task' tool to add uncertainty areas to these tasks before they can be 'in-progress': ${tasksInTreeWithoutUncertaintyAreas
-                .map((t) => `'${t.taskID}'`)
-                .join(', ')}`,
-    ].filter(Boolean);
     const res = {
-        tasksCreated: allNewUncertaintyAreaTasks.length > 0
-            ? allNewUncertaintyAreaTasks.map((t) => ({
-                ...t,
-                // we don't want them to see this
-                uncertaintyAreasUpdated: undefined,
-            }))
-            : undefined,
-        tasksUpdated: tasksUpdated.map((task) => ({
-            ...task,
-            // we don't want them to see this
-            uncertaintyAreasUpdated: undefined,
-        })),
-        executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
+        tasksUpdated: updatedTasks.map((t) => toBasicTaskInfo(t, false, t.status !== DoneStatus && t.status !== FailedStatus, t.status === TodoStatus)),
     };
     return {
-        content: executionConstraints.length > 0
-            ? [
-                {
-                    type: 'text',
-                    audience: ['assistant'],
-                    text: 'Pay attention to the task execution constraints.',
-                },
-            ]
-            : [],
+        content: [],
         structuredContent: res,
     };
+}
+function handleUpdateSingleTask({ taskID, set, add, remove }, taskDB) {
+    const task = taskDB.get(taskID);
+    if (!task) {
+        throw new Error(`Task not found: ${taskID}`);
+    }
+    if (set) {
+        const { status: newStatus, title, description, goal, criticalPath, estimatedComplexity } = set;
+        const oldStatus = task.status;
+        const critPathDepsNotDone = task.dependsOnTaskIDs.filter((depTaskID) => {
+            const depTask = taskDB.get(depTaskID);
+            return depTask.criticalPath && depTask.status !== 'done';
+        });
+        const transitionValidations = [
+            {
+                from: DoneStatus,
+                to: FailedStatus,
+                validate() {
+                    throw new Error(`Can't transition from ${oldStatus} to ${newStatus}`);
+                },
+            },
+            {
+                from: FailedStatus,
+                to: DoneStatus,
+                validate() {
+                    throw new Error(`Can't transition from ${oldStatus} to ${newStatus}`);
+                },
+            },
+            {
+                to: DoneStatus,
+                validate() {
+                    if (critPathDepsNotDone.length > 0) {
+                        throw new Error(`Can't transition task ${taskID} to ${newStatus}: Critical path dependencies are not ${DoneStatus}: ${critPathDepsNotDone.join(', ')}`);
+                    }
+                },
+            },
+        ];
+        transitionValidations
+            .filter((tv) => !tv.from || tv.from === oldStatus)
+            .filter((tv) => tv.to === newStatus)
+            .forEach((tv) => tv.validate());
+        if (newStatus) {
+            task.status = newStatus;
+        }
+        if (title) {
+            task.title = title;
+        }
+        if (description) {
+            task.description = description;
+        }
+        if (goal) {
+            task.goal = goal;
+        }
+        if (typeof criticalPath !== 'undefined') {
+            task.criticalPath = criticalPath;
+        }
+        if (estimatedComplexity) {
+            task.estimatedComplexity = estimatedComplexity;
+        }
+    }
+    if (add) {
+        const { definitionsOfDone: addDefinitionsOfDone, uncertaintyAreas: addUncertaintyAreas, lessonsLearned: addLessonsLearned, verificationEvidence: addVerificationEvidence, } = add;
+        if (addDefinitionsOfDone) {
+            task.definitionsOfDone.push(...addDefinitionsOfDone);
+        }
+        if (addUncertaintyAreas) {
+            task.uncertaintyAreas.push(...addUncertaintyAreas);
+        }
+        if (addLessonsLearned) {
+            task.lessonsLearned.push(...addLessonsLearned);
+        }
+        if (addVerificationEvidence) {
+            task.verificationEvidence.push(...addVerificationEvidence);
+        }
+    }
+    if (remove) {
+        const { dependsOnTaskIDs: removeDependsOnTaskIDs } = remove;
+        if (removeDependsOnTaskIDs) {
+            task.dependsOnTaskIDs = task.dependsOnTaskIDs.filter((depTaskID) => !removeDependsOnTaskIDs.includes(depTaskID));
+        }
+    }
+    return task;
 }

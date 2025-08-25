@@ -5,7 +5,12 @@ import { TaskDB } from './tools/task_db.js'
 
 export function createServer() {
   const singleAgent = process.env.SINGLE_AGENT === 'true'
-  console.error(singleAgent ? 'Running in single agent mode' : 'Running in multi-agent mode')
+
+  if (singleAgent) {
+    console.error('Running in single agent mode')
+  } else {
+    console.error('Running in multi-agent mode')
+  }
 
   const server = new Server(
     {
@@ -19,14 +24,15 @@ export function createServer() {
         tools: {},
       },
 
-      instructions:
-        'Use this server to manage structured tasks. Tools:\n' +
-        '- create_task: Create new task with optional dependencies and uncertainty areas.\n' +
-        '- update_task: Update dependencies and uncertainty areas.\n' +
-        '- transition_task_status: Change status (not-started -> in-progress -> complete). ' +
-        "Before 'in-progress', all dependencies must be 'complete'. " +
-        'When completing, provide outcomeDetails and verificationEvidence.\n' +
-        '- task_info: Retrieve full task details.',
+      instructions: `Use this server to manage structured tasks. Tools:
+- create_task: Create a new task.
+- decompose_task: Decompose a complex task into smaller, more manageable subtasks.
+All tasks with complexity higher than low must always be decomposed before execution.
+- update_task: Change the status of a task.
+Must use 'update_task' before executing a task, and when executing a task has finished.
+- task_info: Get full details for specified task IDs.${
+        singleAgent ? '\n- current_task: Get task infos for in-progress tasks.' : ''
+      }`,
     }
   )
 
@@ -34,9 +40,9 @@ export function createServer() {
     return { tools: tools(singleAgent) }
   })
 
-  const handlers = toolHandlers(singleAgent)
+  const handlers = toolHandlers()
 
-  const taskDB = new TaskDB(singleAgent)
+  const taskDB = new TaskDB()
 
   server.setRequestHandler(CallToolRequestSchema, async ({ params: { name, arguments: args } }) => {
     const toolHandler = handlers[name as keyof typeof handlers]
@@ -45,7 +51,7 @@ export function createServer() {
     }
 
     const parsedArgs = toolHandler.schema.parse(args)
-    return await toolHandler.handler(parsedArgs, taskDB)
+    return await toolHandler.handler(parsedArgs, taskDB, singleAgent)
   })
 
   return { server, cleanup: () => {} }

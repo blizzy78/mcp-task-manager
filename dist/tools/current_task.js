@@ -1,0 +1,35 @@
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { DoneStatus, FailedStatus, toBasicTaskInfo, TodoStatus } from './tasks.js';
+export const CurrentTaskArgsSchema = z.object({});
+export const CURRENT_TASK = 'current_task';
+export const currentTaskTool = {
+    name: CURRENT_TASK,
+    title: 'Get current task',
+    description: 'Returns a list of tasks that are currently in progress.',
+    inputSchema: zodToJsonSchema(CurrentTaskArgsSchema),
+};
+export async function handleCurrentTask(_, taskDB) {
+    const currentTaskID = taskDB.getCurrentTask();
+    if (!currentTaskID) {
+        const res = { tasks: [] };
+        return {
+            content: [],
+            structuredContent: res,
+        };
+    }
+    const tasksInTree = taskDB.getAllInTree(currentTaskID);
+    const res = {
+        tasks: tasksInTree.map((t) => toBasicTaskInfo(t, true, t.status !== DoneStatus && t.status !== FailedStatus, t.status === TodoStatus)),
+    };
+    return {
+        content: [
+            {
+                type: 'text',
+                text: "Use 'task_info' to retrieve detailed task infos",
+                audience: ['assistant'],
+            },
+        ],
+        structuredContent: res,
+    };
+}

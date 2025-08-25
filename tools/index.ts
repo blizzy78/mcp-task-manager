@@ -1,13 +1,9 @@
 import type z from 'zod'
 import { CREATE_TASK, CreateTaskArgsSchema, createTaskTool, handleCreateTask } from './create_task.js'
-import { handleTaskInfo, TASK_INFO, taskInfoArgsSchema, taskInfoTool } from './task_info.js'
+import { CURRENT_TASK, CurrentTaskArgsSchema, currentTaskTool, handleCurrentTask } from './current_task.js'
+import { DECOMPOSE_TASK, DecomposeTaskArgsSchema, decomposeTaskTool, handleDecomposeTask } from './decompose_task.js'
+import { handleTaskInfo, TASK_INFO, TaskInfoArgsSchema, taskInfoTool } from './task_info.js'
 import type { ToolHandler } from './tools.js'
-import {
-  handleTransitionTaskStatus,
-  TRANSITION_TASK_STATUS,
-  TransitionTaskStatusArgsSchema,
-  transitionTaskStatusTool,
-} from './transition_task_status.js'
 import { handleUpdateTask, UPDATE_TASK, UpdateTaskArgsSchema, updateTaskTool } from './update_task.js'
 
 export type ToolHandlerInfo = {
@@ -16,14 +12,23 @@ export type ToolHandlerInfo = {
 }
 
 export function tools(singleAgent: boolean) {
-  return [createTaskTool, updateTaskTool, transitionTaskStatusTool, taskInfoTool(singleAgent)] as const
+  if (!singleAgent) {
+    return [createTaskTool, decomposeTaskTool, updateTaskTool, taskInfoTool] as const
+  }
+
+  return [createTaskTool, decomposeTaskTool, updateTaskTool, taskInfoTool, currentTaskTool] as const
 }
 
-export function toolHandlers(singleAgent: boolean): Readonly<Record<string, ToolHandlerInfo>> {
+export function toolHandlers(): Readonly<Record<string, ToolHandlerInfo>> {
   return {
     [CREATE_TASK]: {
       handler: handleCreateTask,
       schema: CreateTaskArgsSchema,
+    } satisfies ToolHandlerInfo,
+
+    [DECOMPOSE_TASK]: {
+      handler: handleDecomposeTask,
+      schema: DecomposeTaskArgsSchema,
     } satisfies ToolHandlerInfo,
 
     [UPDATE_TASK]: {
@@ -31,14 +36,14 @@ export function toolHandlers(singleAgent: boolean): Readonly<Record<string, Tool
       schema: UpdateTaskArgsSchema,
     } satisfies ToolHandlerInfo,
 
-    [TRANSITION_TASK_STATUS]: {
-      handler: handleTransitionTaskStatus,
-      schema: TransitionTaskStatusArgsSchema,
-    } satisfies ToolHandlerInfo,
-
     [TASK_INFO]: {
       handler: handleTaskInfo,
-      schema: taskInfoArgsSchema(singleAgent),
+      schema: TaskInfoArgsSchema,
+    } satisfies ToolHandlerInfo,
+
+    [CURRENT_TASK]: {
+      handler: handleCurrentTask,
+      schema: CurrentTaskArgsSchema,
     } satisfies ToolHandlerInfo,
   }
 }

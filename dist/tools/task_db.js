@@ -1,15 +1,17 @@
 export class TaskDB {
-    singleAgent;
     store = new Map();
-    currentInProgressTask;
-    constructor(singleAgent = false) {
-        this.singleAgent = singleAgent;
-    }
+    currentTaskID = null;
     set(taskID, task) {
         this.store.set(taskID, task);
     }
     get(taskID) {
         return this.store.get(taskID);
+    }
+    setCurrentTask(taskID) {
+        this.currentTaskID = taskID;
+    }
+    getCurrentTask() {
+        return this.currentTaskID;
     }
     // TODO: this could be more efficient, but we're only dealing with a handful of tasks here
     getAllInTree(taskID) {
@@ -41,16 +43,5 @@ export class TaskDB {
             }
         }
         return resultIDs.map((id) => this.get(id));
-    }
-    get isSingleAgent() {
-        return this.singleAgent;
-    }
-    getCurrentInProgressTask() {
-        return this.singleAgent ? this.currentInProgressTask : undefined;
-    }
-    setCurrentInProgressTask(taskID) {
-        if (this.singleAgent) {
-            this.currentInProgressTask = taskID;
-        }
     }
 }

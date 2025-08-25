@@ -1,107 +1,42 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import type { Task, TaskDB } from './task_db.js'
-import { TaskIDSchema } from './tasks.js'
-import type { TextContent, ToolResult } from './tools.js'
+import { type TaskDB } from './task_db.js'
+import { TaskIDSchema, type Task, type TaskID } from './tasks.js'
+import type { ToolResult } from './tools.js'
 
-const TaskInfoArgsSchema = z.object({
-  taskID: TaskIDSchema.describe('The identifier of a task.'),
+export const TaskInfoArgsSchema = z.object({
+  taskIDs: TaskIDSchema.array().min(1).describe('A list of task IDs to retrieve information for'),
 })
 
 type TaskInfoArgs = z.infer<typeof TaskInfoArgsSchema>
 
-const TaskInfoArgsSingleAgentSchema = z.object({
-  taskID: TaskIDSchema.optional().describe(
-    `The identifier of a task. If not provided, the current 'in-progress' task will be returned, if any.`
-  ),
-})
-
-type TaskInfoArgsSingleAgent = z.infer<typeof TaskInfoArgsSingleAgentSchema>
-
-export function taskInfoArgsSchema(singleAgent: boolean) {
-  if (singleAgent) {
-    return TaskInfoArgsSingleAgentSchema
-  }
-
-  return TaskInfoArgsSchema
-}
-
 export const TASK_INFO = 'task_info'
 
-export function taskInfoTool(singleAgent: boolean) {
-  return {
-    name: TASK_INFO,
-    title: 'Get task info',
-    description: 'A tool to retrieve full information about a task.',
-    inputSchema: zodToJsonSchema(taskInfoArgsSchema(singleAgent)),
-  }
+export const taskInfoTool = {
+  name: TASK_INFO,
+  title: 'Get task info',
+  description: 'Returns full details for requested tasks',
+  inputSchema: zodToJsonSchema(TaskInfoArgsSchema),
 }
 
-export async function handleTaskInfo({ taskID }: TaskInfoArgs | TaskInfoArgsSingleAgent, taskDB: TaskDB) {
-  const returnAllTaskIDsInTree = taskDB.isSingleAgent && !taskID
+export async function handleTaskInfo({ taskIDs }: TaskInfoArgs, taskDB: TaskDB) {
+  const tasks = new Array<Task>()
+  const notFoundTaskIDs = new Array<TaskID>()
 
-  if (taskDB.isSingleAgent && !taskID) {
-    taskID = taskDB.getCurrentInProgressTask()
-    if (!taskID) {
-      throw new Error('No task currently in progress.')
+  for (const taskID of taskIDs) {
+    const task = taskDB.get(taskID)
+    if (!task) {
+      notFoundTaskIDs.push(taskID)
+      continue
     }
+
+    tasks.push(task)
   }
 
-  const task = taskDB.get(taskID!)
-  if (!task) {
-    throw new Error(
-      `Invalid task info request: Unknown task ID: ${taskID}.${
-        taskDB.isSingleAgent
-          ? ` Use 'task_info' tool without taskID to retrieve details on current 'in-progress' task.`
-          : ''
-      }`
-    )
-  }
-
-  const executionConstraints = [
-    task.currentStatus === 'in-progress' &&
-      task.readonly &&
-      `IMPORTANT: Task '${taskID}' is read-only: This task must be performed without making ` +
-        'any permanent changes, editing code or any other content is not allowed.',
-
-    task.currentStatus === 'in-progress' &&
-      !task.readonly &&
-      `Task '${taskID}' is read-write: You are allowed to make changes.`,
-
-    task.currentStatus === 'not-started' &&
-      task.dependsOnTaskIDs.map((id) => taskDB.get(id)!).some((t) => t.currentStatus !== 'complete') &&
-      `Dependencies of task '${taskID}' must be 'complete' first before this task can be 'in-progress'.`,
-
-    task.currentStatus === 'in-progress' &&
-      task.definitionsOfDone.length > 0 &&
-      `Definitions of done for task '${taskID}' must be met before this task can be considered 'complete'.`,
-  ].filter(Boolean)
-
-  const res = {
-    task: {
-      ...task,
-
-      // we don't want them to see this
-      uncertaintyAreasUpdated: undefined,
-    } satisfies Task,
-
-    allTaskIDsInTree: returnAllTaskIDsInTree ? taskDB.getAllInTree(task.taskID).map((t) => t.taskID) : undefined,
-
-    executionConstraints: executionConstraints.length > 0 ? executionConstraints : undefined,
-  }
+  const res = { tasks, notFoundTasks: notFoundTaskIDs }
 
   return {
-    content:
-      executionConstraints.length > 0
-        ? [
-            {
-              type: 'text',
-              audience: ['assistant'],
-              text: 'Pay attention to the task execution constraints.',
-            } satisfies TextContent,
-          ]
-        : [],
-
+    content: [],
     structuredContent: res,
   } satisfies ToolResult
 }

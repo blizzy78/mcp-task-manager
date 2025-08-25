@@ -1,131 +1,288 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { handleCreateTask } from './create_task.js'
 import { TaskDB } from './task_db.js'
-import { TaskIDSchema } from './tasks.js'
+import { TodoStatus, type Task } from './tasks.js'
 
-describe('create_task handler', () => {
-  it('should create a task with required fields', async () => {
-    const taskDB = new TaskDB()
-    const args = {
-      title: 'Test Task',
-      description: 'This is a test task',
-      goal: 'Test goal',
-      definitionsOfDone: ['All acceptance criteria met'],
-      dependsOnTaskIDs: [],
-      uncertaintyAreas: [],
-    }
+describe('create_task tool handler', () => {
+  let taskDB: TaskDB
 
-    const result = await handleCreateTask(args, taskDB)
-
-    expect(result).toHaveProperty('content')
-    expect(result).toHaveProperty('structuredContent')
-    expect(result.content).toBeInstanceOf(Array)
-    expect(result.content).toHaveLength(0)
-    expect(result.structuredContent).toHaveProperty('tasksCreated')
-    expect(result.structuredContent.tasksCreated[0].currentStatus).toBe('not-started')
-    expect(result.structuredContent.tasksCreated.at(-1)!.title).toBe('Test Task')
+  beforeEach(() => {
+    taskDB = new TaskDB()
   })
 
-  it('should create uncertainty area tasks and link them as dependencies', async () => {
-    const taskDB = new TaskDB()
-    const args = {
-      title: 'Uncertain Task',
-      description: 'Task with uncertainties',
-      goal: 'Uncertain goal',
-      definitionsOfDone: ['All uncertainties resolved'],
-      dependsOnTaskIDs: [],
-      uncertaintyAreas: [
-        { title: 'Clarify input', description: 'Need more info' },
-        { title: 'Define output', description: 'Clarify requirements' },
-      ],
-    }
+  describe('basic task creation', () => {
+    it('should create a simple task with trivial complexity', async () => {
+      const args = {
+        title: 'Test task',
+        description: 'A test task description',
+        goal: 'Test goal',
+        definitionsOfDone: ['Task is complete'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'trivial' as const,
+          description: 'Simple task',
+        },
+      }
 
-    const result = await handleCreateTask(args, taskDB)
+      const result = await handleCreateTask(args, taskDB, false)
 
-    expect(result.structuredContent.tasksCreated).toHaveLength(3)
-    const areaTasks = result.structuredContent.tasksCreated.slice(0, 2)
-    const mainTask = result.structuredContent.tasksCreated[2]
-    expect(mainTask.dependsOnTaskIDs).toEqual([...args.dependsOnTaskIDs, ...areaTasks.map((t: any) => t.taskID)])
-    expect(mainTask.title).toBe('Uncertain Task')
-  })
+      expect(result.structuredContent).toMatchObject({
+        taskCreated: {
+          taskID: expect.any(String),
+          title: 'Test task',
+          mustDecomposeBeforeExecution: undefined,
+        },
+      })
+      expect(result.content).toEqual([])
 
-  it('should create a task with dependent tasks', async () => {
-    const taskDB = new TaskDB()
-    const dependentTaskID1 = TaskIDSchema.parse('dep1')
-    const dependentTaskID2 = TaskIDSchema.parse('dep2')
-
-    taskDB.set(dependentTaskID1, {
-      taskID: dependentTaskID1,
-      currentStatus: 'complete' as any,
-      title: 'Dep Task 1',
-      description: 'Dep task 1 description',
-      goal: 'Dep goal 1',
-      definitionsOfDone: ['Done'],
-      dependsOnTaskIDs: [],
+      // Verify task was stored in database
+      const taskID = result.structuredContent.taskCreated.taskID
+      const storedTask = taskDB.get(taskID)
+      expect(storedTask).toBeDefined()
+      expect(storedTask?.title).toBe('Test task')
+      expect(storedTask?.status).toBe(TodoStatus)
     })
 
-    taskDB.set(dependentTaskID2, {
-      taskID: dependentTaskID2,
-      currentStatus: 'complete' as any,
-      title: 'Dep Task 2',
-      description: 'Dep task 2 description',
-      goal: 'Dep goal 2',
-      definitionsOfDone: ['Done'],
-      dependsOnTaskIDs: [],
+    it('should create task with low complexity', async () => {
+      const args = {
+        title: 'Test task',
+        description: 'A test task description',
+        goal: 'Test goal',
+        definitionsOfDone: ['Task is complete'],
+        criticalPath: false,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'low, may benefit from decomposition before execution' as const,
+          description: 'Low complexity task',
+        },
+      }
+
+      const result = await handleCreateTask(args, taskDB, false)
+
+      expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBeUndefined()
+      expect(result.content).toEqual([])
     })
 
-    const args = {
-      title: 'Dependent Task',
-      description: 'This task depends on others',
-      goal: 'Dependent goal',
-      definitionsOfDone: ['Criteria met'],
-      dependsOnTaskIDs: [dependentTaskID1, dependentTaskID2],
-      uncertaintyAreas: [],
-    }
+    it('should indicate decomposition needed for medium complexity', async () => {
+      const args = {
+        title: 'Complex task',
+        description: 'A complex task description',
+        goal: 'Complex goal',
+        definitionsOfDone: ['Complex task is complete'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'medium, must decompose before execution' as const,
+          description: 'Medium complexity task',
+        },
+      }
 
-    const result = await handleCreateTask(args, taskDB)
+      const result = await handleCreateTask(args, taskDB, false)
 
-    const mainTask = result.structuredContent.tasksCreated.at(-1)!
-    expect(mainTask.dependsOnTaskIDs).toEqual([dependentTaskID1, dependentTaskID2])
-    expect(mainTask.title).toBe('Dependent Task')
+      expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBe(true)
+      expect(result.content).toHaveLength(1)
+      expect(result.content[0]).toMatchObject({
+        type: 'text',
+        text: 'Task must be decomposed before execution',
+        audience: ['assistant'],
+      })
+    })
+
+    it('should indicate decomposition needed for high complexity', async () => {
+      const args = {
+        title: 'Very complex task',
+        description: 'A very complex task description',
+        goal: 'Very complex goal',
+        definitionsOfDone: ['Very complex task is complete'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'high, must decompose before execution' as const,
+          description: 'High complexity task',
+        },
+      }
+
+      const result = await handleCreateTask(args, taskDB, false)
+
+      expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBe(true)
+      expect(result.content).toHaveLength(1)
+      expect(result.content[0].text).toBe('Task must be decomposed before execution')
+    })
+
+    it('should handle task with uncertainty areas', async () => {
+      const args = {
+        title: 'Uncertain task',
+        description: 'A task with uncertainties',
+        goal: 'Uncertain goal',
+        definitionsOfDone: ['Task is complete'],
+        criticalPath: false,
+        uncertaintyAreas: [
+          {
+            title: 'Unknown requirement',
+            description: 'Not sure about this requirement',
+          },
+          {
+            title: 'Technical challenge',
+            description: 'Need to research this approach',
+          },
+        ],
+        estimatedComplexity: {
+          level: 'trivial' as const,
+          description: 'Simple but uncertain task',
+        },
+      }
+
+      const result = await handleCreateTask(args, taskDB, false)
+
+      const taskID = result.structuredContent.taskCreated.taskID
+      const storedTask = taskDB.get(taskID)
+      expect(storedTask?.uncertaintyAreas).toHaveLength(2)
+      expect(storedTask?.uncertaintyAreas[0]).toMatchObject({
+        title: 'Unknown requirement',
+        description: 'Not sure about this requirement',
+      })
+    })
   })
 
-  it('should generate unique task IDs for each task creation', async () => {
-    const taskDB = new TaskDB()
-    const args = {
-      title: 'Test Task',
-      description: 'Same description',
-      goal: 'Same goal',
-      definitionsOfDone: ['All done'],
-      dependsOnTaskIDs: [],
-      uncertaintyAreas: [],
-    }
+  describe('single agent mode', () => {
+    it('should set current task in single agent mode', async () => {
+      const args = {
+        title: 'Current task',
+        description: 'Task for single agent',
+        goal: 'Single agent goal',
+        definitionsOfDone: ['Single agent task complete'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'trivial' as const,
+          description: 'Simple current task',
+        },
+      }
 
-    const result1 = await handleCreateTask(args, taskDB)
-    const result2 = await handleCreateTask(args, taskDB)
+      const result = await handleCreateTask(args, taskDB, true)
 
-    const id1 = result1.structuredContent.tasksCreated.at(-1)!.taskID
-    const id2 = result2.structuredContent.tasksCreated.at(-1)!.taskID
-    expect(id1).not.toBe(id2)
-    expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
-    expect(id2).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+      const taskID = result.structuredContent.taskCreated.taskID
+      expect(taskDB.getCurrentTask()).toBe(taskID)
+    })
+
+    it('should not set current task in multi-agent mode', async () => {
+      const args = {
+        title: 'Multi-agent task',
+        description: 'Task for multiple agents',
+        goal: 'Multi-agent goal',
+        definitionsOfDone: ['Multi-agent task complete'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'trivial' as const,
+          description: 'Simple multi-agent task',
+        },
+      }
+
+      await handleCreateTask(args, taskDB, false)
+
+      expect(taskDB.getCurrentTask()).toBeNull()
+    })
   })
 
-  it('should throw error when dependent task does not exist', async () => {
-    const taskDB = new TaskDB()
-    const nonExistentDepID = TaskIDSchema.parse('nonexistent-dep')
+  describe('task properties validation', () => {
+    it('should create task with all required properties', async () => {
+      const args = {
+        title: 'Complete task',
+        description: 'Complete task description',
+        goal: 'Complete goal',
+        definitionsOfDone: ['First criterion', 'Second criterion'],
+        criticalPath: true,
+        uncertaintyAreas: [
+          {
+            title: 'Uncertainty',
+            description: 'Some uncertainty',
+          },
+        ],
+        estimatedComplexity: {
+          level: 'low, may benefit from decomposition before execution' as const,
+          description: 'Low complexity with details',
+        },
+      }
 
-    const args = {
-      title: 'Dependent Task',
-      description: 'Task with invalid dependency',
-      goal: 'Test goal',
-      definitionsOfDone: ['Done'],
-      dependsOnTaskIDs: [nonExistentDepID],
-      uncertaintyAreas: [],
-    }
+      const result = await handleCreateTask(args, taskDB, false)
 
-    await expect(handleCreateTask(args, taskDB)).rejects.toThrowError(
-      `Invalid task: Unknown dependency task: ${nonExistentDepID}`
-    )
+      const taskID = result.structuredContent.taskCreated.taskID
+      const storedTask = taskDB.get(taskID) as Task
+
+      expect(storedTask).toMatchObject({
+        taskID: taskID,
+        status: TodoStatus,
+        dependsOnTaskIDs: [],
+        title: 'Complete task',
+        description: 'Complete task description',
+        goal: 'Complete goal',
+        definitionsOfDone: ['First criterion', 'Second criterion'],
+        criticalPath: true,
+        uncertaintyAreas: [
+          {
+            title: 'Uncertainty',
+            description: 'Some uncertainty',
+          },
+        ],
+        estimatedComplexity: {
+          level: 'low, may benefit from decomposition before execution',
+          description: 'Low complexity with details',
+        },
+        lessonsLearned: [],
+        verificationEvidence: [],
+      })
+    })
+
+    it('should handle empty definitions of done and uncertainty areas', async () => {
+      const args = {
+        title: 'Minimal task',
+        description: 'Minimal task description',
+        goal: 'Minimal goal',
+        definitionsOfDone: ['One requirement'],
+        criticalPath: false,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'trivial' as const,
+          description: 'Minimal complexity',
+        },
+      }
+
+      const result = await handleCreateTask(args, taskDB, false)
+
+      const taskID = result.structuredContent.taskCreated.taskID
+      const storedTask = taskDB.get(taskID)
+
+      expect(storedTask?.uncertaintyAreas).toEqual([])
+      expect(storedTask?.definitionsOfDone).toEqual(['One requirement'])
+    })
+  })
+
+  describe('task ID generation', () => {
+    it('should generate unique task IDs', async () => {
+      const args = {
+        title: 'ID test task',
+        description: 'Testing unique IDs',
+        goal: 'Unique ID goal',
+        definitionsOfDone: ['ID is unique'],
+        criticalPath: false,
+        uncertaintyAreas: [],
+        estimatedComplexity: {
+          level: 'trivial' as const,
+          description: 'ID generation test',
+        },
+      }
+
+      const result1 = await handleCreateTask(args, taskDB, false)
+      const result2 = await handleCreateTask(args, taskDB, false)
+
+      const taskID1 = result1.structuredContent.taskCreated.taskID
+      const taskID2 = result2.structuredContent.taskCreated.taskID
+
+      expect(taskID1).not.toBe(taskID2)
+      expect(taskID1).toMatch(/^[a-zA-Z0-9].*[a-zA-Z0-9]$/)
+      expect(taskID2).toMatch(/^[a-zA-Z0-9].*[a-zA-Z0-9]$/)
+    })
   })
 })

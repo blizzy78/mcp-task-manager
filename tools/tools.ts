@@ -11,4 +11,4 @@ export type ToolResult = {
   structuredContent: any
 }
 
-export type ToolHandler = (args: any, db: TaskDB) => Promise<ToolResult>
+export type ToolHandler = (args: any, db: TaskDB, singleAgent: boolean) => Promise<ToolResult>
