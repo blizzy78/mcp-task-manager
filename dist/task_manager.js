@@ -13,7 +13,7 @@ export function createServer() {
     const server = new Server({
         name: 'task-manager',
         title: 'Task Manager',
-        version: '0.9.0',
+        version: '0.10.0',
     }, {
         capabilities: {
             tools: {},
