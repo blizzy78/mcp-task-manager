@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { TaskDB } from '../task_db.js'
+import { DoneStatus, FailedStatus, InProgressStatus, newTaskID, TodoStatus, type Task } from '../tasks.js'
 import { handleCurrentTask } from './current_task.js'
-import { TaskDB } from './task_db.js'
-import { DoneStatus, FailedStatus, InProgressStatus, newTaskID, TodoStatus, type Task } from './tasks.js'
 
 describe('current_task tool handler', () => {
   let taskDB: TaskDB
@@ -49,7 +49,7 @@ describe('current_task tool handler', () => {
       expect(result.content).toHaveLength(1)
       expect(result.content[0]).toMatchObject({
         type: 'text',
-        text: "Use 'task_info' to retrieve detailed task infos",
+        text: "Use 'task_info' to retrieve full task details",
         audience: ['assistant'],
       })
 

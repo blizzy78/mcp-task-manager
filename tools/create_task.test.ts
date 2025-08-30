@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { TaskDB } from '../task_db.js'
+import { TodoStatus, type Task } from '../tasks.js'
 import { handleCreateTask } from './create_task.js'
-import { TaskDB } from './task_db.js'
-import { TodoStatus, type Task } from './tasks.js'
 
 describe('create_task tool handler', () => {
   let taskDB: TaskDB
@@ -34,7 +34,7 @@ describe('create_task tool handler', () => {
           mustDecomposeBeforeExecution: undefined,
         },
       })
-      expect(result.content).toEqual([])
+      expect(result.content).toHaveLength(1)
 
       // Verify task was stored in database
       const taskID = result.structuredContent.taskCreated.taskID
@@ -61,7 +61,7 @@ describe('create_task tool handler', () => {
       const result = await handleCreateTask(args, taskDB, false)
 
       expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBeUndefined()
-      expect(result.content).toEqual([])
+      expect(result.content).toHaveLength(1)
     })
 
     it('should indicate decomposition needed for medium complexity', async () => {
@@ -81,7 +81,7 @@ describe('create_task tool handler', () => {
       const result = await handleCreateTask(args, taskDB, false)
 
       expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBe(true)
-      expect(result.content).toHaveLength(1)
+      expect(result.content).toHaveLength(2)
       expect(result.content[0]).toMatchObject({
         type: 'text',
         text: 'Task must be decomposed before execution',
@@ -106,8 +106,10 @@ describe('create_task tool handler', () => {
       const result = await handleCreateTask(args, taskDB, false)
 
       expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBe(true)
-      expect(result.content).toHaveLength(1)
-      expect(result.content[0].text).toBe('Task must be decomposed before execution')
+      expect(result.content).toHaveLength(2)
+      expect(result.content[0]).toMatchObject({
+        text: 'Task must be decomposed before execution',
+      })
     })
 
     it('should handle task with uncertainty areas', async () => {

@@ -1,8 +1,8 @@
+import type { CallToolResult, TextContent } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { type TaskDB } from './task_db.js'
-import { DoneStatus, FailedStatus, toBasicTaskInfo, TodoStatus } from './tasks.js'
-import type { TextContent, ToolResult } from './tools.js'
+import { type TaskDB } from '../task_db.js'
+import { DoneStatus, FailedStatus, toBasicTaskInfo, TodoStatus } from '../tasks.js'
 
 export const CurrentTaskArgsSchema = z.object({})
 
@@ -25,7 +25,7 @@ export async function handleCurrentTask(_: CurrentTaskArgs, taskDB: TaskDB) {
     return {
       content: [],
       structuredContent: res,
-    } satisfies ToolResult
+    } satisfies CallToolResult
   }
 
   const tasksInTree = taskDB.getAllInTree(currentTaskID)
@@ -40,10 +40,11 @@ export async function handleCurrentTask(_: CurrentTaskArgs, taskDB: TaskDB) {
     content: [
       {
         type: 'text',
-        text: "Use 'task_info' to retrieve detailed task infos",
+        text: "Use 'task_info' to retrieve full task details",
         audience: ['assistant'],
       } satisfies TextContent,
     ],
+
     structuredContent: res,
-  } satisfies ToolResult
+  } satisfies CallToolResult
 }

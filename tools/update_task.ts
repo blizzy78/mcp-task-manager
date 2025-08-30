@@ -1,6 +1,7 @@
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { type TaskDB } from './task_db.js'
+import { type TaskDB } from '../task_db.js'
 import {
   DoneStatus,
   FailedStatus,
@@ -17,8 +18,7 @@ import {
   TodoStatus,
   type Task,
   type TaskStatus,
-} from './tasks.js'
-import type { ToolResult } from './tools.js'
+} from '../tasks.js'
 
 const TaskUpdateSchema = z.object({
   taskID: TaskIDSchema.describe('The identifier of the task to change status'),
@@ -105,7 +105,7 @@ export async function handleUpdateTask({ tasks }: UpdateTaskArgs, taskDB: TaskDB
   return {
     content: [],
     structuredContent: res,
-  } satisfies ToolResult
+  } satisfies CallToolResult
 }
 
 function handleUpdateSingleTask({ taskID, set, add, remove }: TaskUpdate, taskDB: TaskDB) {

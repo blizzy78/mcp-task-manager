@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { DoneStatus, FailedStatus, TaskComplexitySchema, TaskCriticalPathSchema, TaskDefinitionsOfDoneSchema, TaskDescriptionSchema, TaskGoalSchema, TaskIDSchema, TaskStatusSchema, TaskTitleSchema, TaskUncertaintyAreasSchema, toBasicTaskInfo, TodoStatus, } from './tasks.js';
+import { DoneStatus, FailedStatus, TaskComplexitySchema, TaskCriticalPathSchema, TaskDefinitionsOfDoneSchema, TaskDescriptionSchema, TaskGoalSchema, TaskIDSchema, TaskStatusSchema, TaskTitleSchema, TaskUncertaintyAreasSchema, toBasicTaskInfo, TodoStatus, } from '../tasks.js';
 const TaskUpdateSchema = z.object({
     taskID: TaskIDSchema.describe('The identifier of the task to change status'),
     set: z

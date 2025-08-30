@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { TaskIDSchema } from './tasks.js';
+import { TaskIDSchema } from '../tasks.js';
 export const TaskInfoArgsSchema = z.object({
     taskIDs: TaskIDSchema.array().min(1).describe('A list of task IDs to retrieve information for'),
 });

@@ -1,8 +1,8 @@
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { type TaskDB } from './task_db.js'
-import { TaskIDSchema, type Task, type TaskID } from './tasks.js'
-import type { ToolResult } from './tools.js'
+import { type TaskDB } from '../task_db.js'
+import { TaskIDSchema, type Task, type TaskID } from '../tasks.js'
 
 export const TaskInfoArgsSchema = z.object({
   taskIDs: TaskIDSchema.array().min(1).describe('A list of task IDs to retrieve information for'),
@@ -38,5 +38,5 @@ export async function handleTaskInfo({ taskIDs }: TaskInfoArgs, taskDB: TaskDB) 
   return {
     content: [],
     structuredContent: res,
-  } satisfies ToolResult
+  } satisfies CallToolResult
 }

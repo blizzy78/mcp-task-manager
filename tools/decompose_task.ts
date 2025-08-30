@@ -1,6 +1,7 @@
+import type { CallToolResult, TextContent } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { type TaskDB } from './task_db.js'
+import { type TaskDB } from '../task_db.js'
 import {
   mustDecompose,
   newTaskID,
@@ -10,8 +11,7 @@ import {
   toBasicTaskInfo,
   TodoStatus,
   type Task,
-} from './tasks.js'
-import type { TextContent, ToolResult } from './tools.js'
+} from '../tasks.js'
 
 const SubtaskSchema = SimpleTaskSchema.extend({
   estimatedComplexity: TaskComplexitySchema,
@@ -110,15 +110,15 @@ export async function handleDecomposeTask({ taskID, subtasks }: DecomposeTaskArg
   }
 
   return {
-    content: createdTasks.some((t) => mustDecompose(t))
-      ? [
-          {
-            type: 'text',
-            text: 'Some tasks must be decomposed before execution',
-            audience: ['assistant'],
-          } satisfies TextContent,
-        ]
-      : [],
+    content: [
+      createdTasks.some((t) => mustDecompose(t)) &&
+        ({
+          type: 'text',
+          text: 'Some tasks must be decomposed before execution',
+          audience: ['assistant'],
+        } satisfies TextContent),
+    ].filter(Boolean),
+
     structuredContent: res,
-  } satisfies ToolResult
+  } satisfies CallToolResult
 }

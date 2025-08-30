@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { DoneStatus, FailedStatus, toBasicTaskInfo, TodoStatus } from './tasks.js';
+import { DoneStatus, FailedStatus, toBasicTaskInfo, TodoStatus } from '../tasks.js';
 export const CurrentTaskArgsSchema = z.object({});
 export const CURRENT_TASK = 'current_task';
 export const currentTaskTool = {
@@ -26,7 +26,7 @@ export async function handleCurrentTask(_, taskDB) {
         content: [
             {
                 type: 'text',
-                text: "Use 'task_info' to retrieve detailed task infos",
+                text: "Use 'task_info' to retrieve full task details",
                 audience: ['assistant'],
             },
         ],

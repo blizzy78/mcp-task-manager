@@ -1,7 +1,18 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js'
+import { handleReadResource } from './resources.js'
+import { TaskDB } from './task_db.js'
 import { toolHandlers, tools } from './tools/index.js'
-import { TaskDB } from './tools/task_db.js'
+
+const serverInfo = {
+  name: 'task-manager',
+  title: 'Task Manager',
+  version: '0.10.0',
+}
 
 export function createServer() {
   const singleAgent = process.env.SINGLE_AGENT === 'true'
@@ -12,19 +23,20 @@ export function createServer() {
     console.error('Running in multi-agent mode')
   }
 
+  const taskDB = new TaskDB()
+
   const server = new Server(
-    {
-      name: 'task-manager',
-      title: 'Task Manager',
-      version: '0.10.0',
-    },
+    serverInfo,
 
     {
       capabilities: {
         tools: {},
+        resources: {},
       },
 
-      instructions: `Use this server to manage structured tasks. Tools:
+      instructions: `Use this server to manage structured tasks.
+
+Tools:
 - create_task: Create a new task.
 - decompose_task: Decompose a complex task into smaller, more manageable subtasks.
 All tasks with complexity higher than low must always be decomposed before execution.
@@ -32,17 +44,21 @@ All tasks with complexity higher than low must always be decomposed before execu
 Must use 'update_task' before executing a task, and when executing a task has finished.
 - task_info: Get full details for specified task IDs.${
         singleAgent ? '\n- current_task: Get task infos for in-progress tasks.' : ''
-      }`,
+      }
+
+Resources:
+Tasks can be accessed as resources using the task:// URI scheme:
+- Read individual task: task://taskID`,
     }
   )
 
+  const theTools = tools(singleAgent)
+
   server.setRequestHandler(ListToolsRequestSchema, () => {
-    return { tools: tools(singleAgent) }
+    return { tools: theTools }
   })
 
   const handlers = toolHandlers()
-
-  const taskDB = new TaskDB()
 
   server.setRequestHandler(CallToolRequestSchema, async ({ params: { name, arguments: args } }) => {
     const toolHandler = handlers[name as keyof typeof handlers]
@@ -52,6 +68,10 @@ Must use 'update_task' before executing a task, and when executing a task has fi
 
     const parsedArgs = toolHandler.schema.parse(args)
     return await toolHandler.handler(parsedArgs, taskDB, singleAgent)
+  })
+
+  server.setRequestHandler(ReadResourceRequestSchema, async ({ params: { uri } }) => {
+    return await handleReadResource(uri, taskDB)
   })
 
   return { server, cleanup: () => {} }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { mustDecompose, newTaskID, SimpleTaskSchema, TaskComplexitySchema, TaskIDSchema, toBasicTaskInfo, TodoStatus, } from './tasks.js';
+import { mustDecompose, newTaskID, SimpleTaskSchema, TaskComplexitySchema, TaskIDSchema, toBasicTaskInfo, TodoStatus, } from '../tasks.js';
 const SubtaskSchema = SimpleTaskSchema.extend({
     estimatedComplexity: TaskComplexitySchema,
     sequenceOrder: z
@@ -76,15 +76,14 @@ export async function handleDecomposeTask({ taskID, subtasks }, taskDB) {
         tasksCreated: createdTasks.map((t) => toBasicTaskInfo(t, false, false, true)),
     };
     return {
-        content: createdTasks.some((t) => mustDecompose(t))
-            ? [
+        content: [
+            createdTasks.some((t) => mustDecompose(t)) &&
                 {
                     type: 'text',
                     text: 'Some tasks must be decomposed before execution',
                     audience: ['assistant'],
                 },
-            ]
-            : [],
+        ].filter(Boolean),
         structuredContent: res,
     };
 }

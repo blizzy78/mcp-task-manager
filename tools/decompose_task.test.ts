@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { TaskDB } from '../task_db.js'
+import { DoneStatus, InProgressStatus, newTaskID, TodoStatus, type Task } from '../tasks.js'
 import { handleDecomposeTask } from './decompose_task.js'
-import { TaskDB } from './task_db.js'
-import { DoneStatus, InProgressStatus, newTaskID, TodoStatus, type Task } from './tasks.js'
 
 describe('decompose_task tool handler', () => {
   let taskDB: TaskDB
