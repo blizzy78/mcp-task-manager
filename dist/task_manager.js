@@ -6,7 +6,7 @@ import { toolHandlers, tools } from './tools/index.js';
 const serverInfo = {
     name: 'task-manager',
     title: 'Task Manager',
-    version: '0.11.1',
+    version: '0.12.0',
 };
 export function createServer() {
     const singleAgent = process.env.SINGLE_AGENT === 'true';
