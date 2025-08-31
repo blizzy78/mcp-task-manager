@@ -66,7 +66,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      const result = await handleDecomposeTask(args, taskDB)
+      const result = await handleDecomposeTask(args, taskDB, false)
 
       expect(result.structuredContent).toMatchObject({
         taskUpdated: {
@@ -153,7 +153,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      const result = await handleDecomposeTask(args, taskDB)
+      const result = await handleDecomposeTask(args, taskDB, false)
 
       const createdTaskIDs = result.structuredContent.tasksCreated.map((t: any) => t.taskID)
       const taskA = taskDB.get(createdTaskIDs[0])!
@@ -246,7 +246,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      const result = await handleDecomposeTask(args, taskDB)
+      const result = await handleDecomposeTask(args, taskDB, false)
 
       const createdTasks = result.structuredContent.tasksCreated
       const setupTask = createdTasks.find((t: any) => t.title === 'Setup')!
@@ -299,7 +299,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      await expect(handleDecomposeTask(args, taskDB)).rejects.toThrow(`Task not found: ${nonExistentID}`)
+      await expect(handleDecomposeTask(args, taskDB, false)).rejects.toThrow(`Task not found: ${nonExistentID}`)
     })
 
     it('should throw error when trying to decompose non-todo task', async () => {
@@ -339,7 +339,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      await expect(handleDecomposeTask(args, taskDB)).rejects.toThrow(
+      await expect(handleDecomposeTask(args, taskDB, false)).rejects.toThrow(
         `Can't decompose task ${parentTaskID} in status: in-progress`
       )
     })
@@ -381,7 +381,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      await expect(handleDecomposeTask(args, taskDB)).rejects.toThrow(
+      await expect(handleDecomposeTask(args, taskDB, false)).rejects.toThrow(
         `Can't decompose task ${parentTaskID} in status: done`
       )
     })
@@ -425,7 +425,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      const result = await handleDecomposeTask(args, taskDB)
+      const result = await handleDecomposeTask(args, taskDB, false)
       expect(result.content).toEqual([])
     })
 
@@ -479,7 +479,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      const result = await handleDecomposeTask(args, taskDB)
+      const result = await handleDecomposeTask(args, taskDB, false)
 
       expect(result.content).toHaveLength(1)
       expect(result.content[0]).toMatchObject({
@@ -544,7 +544,7 @@ describe('decompose_task tool handler', () => {
         ],
       }
 
-      const result = await handleDecomposeTask(args, taskDB)
+      const result = await handleDecomposeTask(args, taskDB, false)
 
       const updatedParent = taskDB.get(parentTaskID)!
       const newSubtaskID = result.structuredContent.tasksCreated[0].taskID

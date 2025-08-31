@@ -11,7 +11,7 @@ export const taskInfoTool = {
     description: 'Returns full details for requested tasks',
     inputSchema: zodToJsonSchema(TaskInfoArgsSchema),
 };
-export async function handleTaskInfo({ taskIDs }, taskDB) {
+export async function handleTaskInfo({ taskIDs }, taskDB, singleAgent) {
     const tasks = new Array();
     const notFoundTaskIDs = new Array();
     for (const taskID of taskIDs) {
@@ -22,7 +22,12 @@ export async function handleTaskInfo({ taskIDs }, taskDB) {
         }
         tasks.push(task);
     }
-    const res = { tasks, notFoundTasks: notFoundTaskIDs };
+    const incompleteTaskIDs = notFoundTaskIDs.length === 0 ? taskDB.incompleteTasksInTree(taskIDs[0]).map((t) => t.taskID) : undefined;
+    const res = {
+        tasks,
+        notFoundTasks: notFoundTaskIDs,
+        incompleteTasksIdealOrder: singleAgent ? incompleteTaskIDs : undefined,
+    };
     return {
         content: [],
         structuredContent: res,

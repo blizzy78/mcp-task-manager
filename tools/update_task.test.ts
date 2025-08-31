@@ -39,7 +39,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       expect(result.structuredContent).toMatchObject({
         tasksUpdated: [
@@ -84,7 +84,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.status).toBe(DoneStatus)
@@ -134,7 +134,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(
+      await expect(handleUpdateTask(args, taskDB, false)).rejects.toThrow(
         `Can't transition task ${taskID} to done: Critical path dependencies are not done: ${depTaskID}`
       )
     })
@@ -183,7 +183,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.status).toBe(DoneStatus)
@@ -217,7 +217,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(`Can't transition from done to failed`)
+      await expect(handleUpdateTask(args, taskDB, false)).rejects.toThrow(`Can't transition from done to failed`)
     })
 
     it('should prevent transition from failed to done', async () => {
@@ -248,7 +248,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(`Can't transition from failed to done`)
+      await expect(handleUpdateTask(args, taskDB, false)).rejects.toThrow(`Can't transition from failed to done`)
     })
 
     it('should allow non-critical path dependencies to be incomplete', async () => {
@@ -295,7 +295,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.status).toBe(DoneStatus)
@@ -334,7 +334,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.title).toBe('New Title')
@@ -378,7 +378,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.estimatedComplexity).toMatchObject({
@@ -417,7 +417,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.definitionsOfDone).toEqual(['Original done', 'Additional done', 'Another done'])
@@ -461,7 +461,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.uncertaintyAreas).toEqual([
@@ -504,7 +504,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.lessonsLearned).toEqual(['Original lesson', 'New lesson', 'Another lesson'])
@@ -538,7 +538,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       const updatedTask = taskDB.get(taskID)!
       expect(updatedTask.verificationEvidence).toEqual(['Original evidence', 'New evidence', 'More evidence'])
@@ -547,13 +547,55 @@ describe('update_task tool handler', () => {
 
   describe('removing properties', () => {
     it('should remove task dependencies', async () => {
+      const rootTaskID = newTaskID()
       const dep1ID = newTaskID()
       const dep2ID = newTaskID()
       const dep3ID = newTaskID()
 
-      const taskID = newTaskID()
-      const task: Task = {
-        taskID,
+      const task1: Task = {
+        taskID: dep1ID,
+        status: TodoStatus,
+        dependsOnTaskIDs: [],
+        title: 'Task 1',
+        description: 'Description',
+        goal: 'Goal',
+        definitionsOfDone: ['Done'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        lessonsLearned: [],
+        verificationEvidence: [],
+      }
+
+      const task2: Task = {
+        taskID: dep2ID,
+        status: TodoStatus,
+        dependsOnTaskIDs: [],
+        title: 'Task 2',
+        description: 'Description',
+        goal: 'Goal',
+        definitionsOfDone: ['Done'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        lessonsLearned: [],
+        verificationEvidence: [],
+      }
+
+      const task3: Task = {
+        taskID: dep3ID,
+        status: TodoStatus,
+        dependsOnTaskIDs: [],
+        title: 'Task 3',
+        description: 'Description',
+        goal: 'Goal',
+        definitionsOfDone: ['Done'],
+        criticalPath: true,
+        uncertaintyAreas: [],
+        lessonsLearned: [],
+        verificationEvidence: [],
+      }
+
+      const rootTask: Task = {
+        taskID: rootTaskID,
         status: TodoStatus,
         dependsOnTaskIDs: [dep1ID, dep2ID, dep3ID],
         title: 'Task',
@@ -565,12 +607,16 @@ describe('update_task tool handler', () => {
         lessonsLearned: [],
         verificationEvidence: [],
       }
-      taskDB.set(taskID, task)
+
+      taskDB.set(rootTaskID, rootTask)
+      taskDB.set(dep1ID, task1)
+      taskDB.set(dep2ID, task2)
+      taskDB.set(dep3ID, task3)
 
       const args = {
         tasks: [
           {
-            taskID,
+            taskID: rootTaskID,
             remove: {
               dependsOnTaskIDs: [dep2ID],
             },
@@ -578,9 +624,9 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
-      const updatedTask = taskDB.get(taskID)!
+      const updatedTask = taskDB.get(rootTaskID)!
       expect(updatedTask.dependsOnTaskIDs).toEqual([dep1ID, dep3ID])
     })
   })
@@ -639,7 +685,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       expect(result.structuredContent.tasksUpdated).toHaveLength(2)
 
@@ -666,7 +712,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      await expect(handleUpdateTask(args, taskDB)).rejects.toThrow(`Task not found: ${nonExistentID}`)
+      await expect(handleUpdateTask(args, taskDB, false)).rejects.toThrow(`Task not found: ${nonExistentID}`)
     })
   })
 
@@ -699,7 +745,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       // For done tasks, dependsOnTaskIDs should be undefined, but the property may still be present
       expect(result.structuredContent.tasksUpdated[0]).toMatchObject({
@@ -742,7 +788,7 @@ describe('update_task tool handler', () => {
         ],
       }
 
-      const result = await handleUpdateTask(args, taskDB)
+      const result = await handleUpdateTask(args, taskDB, false)
 
       // For todo tasks, mustDecomposeBeforeExecution should be included based on complexity
       expect(result.structuredContent.tasksUpdated[0]).toMatchObject({

@@ -56,14 +56,17 @@ Should always include lessons learned to inform future tasks.
 Important: Always update multiple tasks in a single call if dependencies allow it.`,
     inputSchema: zodToJsonSchema(UpdateTaskArgsSchema),
 };
-export async function handleUpdateTask({ tasks }, taskDB) {
+export async function handleUpdateTask({ tasks }, taskDB, singleAgent) {
     const updatedTasks = new Array();
     for (const taskUpdate of tasks) {
         const task = handleUpdateSingleTask(taskUpdate, taskDB);
         updatedTasks.push(task);
     }
+    const taskID = tasks.map((t) => t.taskID)[0];
+    const incompleteTaskIDs = taskDB.incompleteTasksInTree(taskID).map((t) => t.taskID);
     const res = {
         tasksUpdated: updatedTasks.map((t) => toBasicTaskInfo(t, false, t.status !== DoneStatus && t.status !== FailedStatus, t.status === TodoStatus)),
+        incompleteTasksIdealOrder: singleAgent ? incompleteTaskIDs : undefined,
     };
     return {
         content: [],

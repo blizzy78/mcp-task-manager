@@ -88,7 +88,7 @@ Important: Always update multiple tasks in a single call if dependencies allow i
   inputSchema: zodToJsonSchema(UpdateTaskArgsSchema),
 }
 
-export async function handleUpdateTask({ tasks }: UpdateTaskArgs, taskDB: TaskDB) {
+export async function handleUpdateTask({ tasks }: UpdateTaskArgs, taskDB: TaskDB, singleAgent: boolean) {
   const updatedTasks = new Array<Task>()
 
   for (const taskUpdate of tasks) {
@@ -96,10 +96,14 @@ export async function handleUpdateTask({ tasks }: UpdateTaskArgs, taskDB: TaskDB
     updatedTasks.push(task)
   }
 
+  const taskID = tasks.map((t) => t.taskID)[0]
+  const incompleteTaskIDs = taskDB.incompleteTasksInTree(taskID).map((t) => t.taskID)
+
   const res = {
     tasksUpdated: updatedTasks.map((t) =>
       toBasicTaskInfo(t, false, t.status !== DoneStatus && t.status !== FailedStatus, t.status === TodoStatus)
     ),
+    incompleteTasksIdealOrder: singleAgent ? incompleteTaskIDs : undefined,
   }
 
   return {

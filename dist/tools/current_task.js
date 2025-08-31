@@ -19,8 +19,10 @@ export async function handleCurrentTask(_, taskDB) {
         };
     }
     const tasksInTree = taskDB.getAllInTree(currentTaskID);
+    const incompleteTaskIDs = taskDB.incompleteTasksInTree(currentTaskID).map((t) => t.taskID);
     const res = {
         tasks: tasksInTree.map((t) => toBasicTaskInfo(t, true, t.status !== DoneStatus && t.status !== FailedStatus, t.status === TodoStatus)),
+        incompleteTasksIdealOrder: incompleteTaskIDs,
     };
     return {
         content: [

@@ -20,13 +20,13 @@ export const decomposeTaskTool = {
     title: 'Decompose task',
     description: `Decomposes an existing complex task into smaller, more manageable subtasks.
 All tasks with complexity higher than low must always be decomposed before execution.
-Tasks can only be decomposed while in todo status.
+Tasks MUST be in todo status to be decomposed.
 Subtasks with the same sequence order may be executed in parallel.
 Subtasks should include a verification subtask.
 Created subtasks may be decomposed later if needed.`,
     inputSchema: zodToJsonSchema(DecomposeTaskArgsSchema),
 };
-export async function handleDecomposeTask({ taskID, subtasks }, taskDB) {
+export async function handleDecomposeTask({ taskID, subtasks }, taskDB, singleAgent) {
     const parentTask = taskDB.get(taskID);
     if (!parentTask) {
         throw new Error(`Task not found: ${taskID}`);
@@ -71,9 +71,11 @@ export async function handleDecomposeTask({ taskID, subtasks }, taskDB) {
     }
     const highestSeqOrderTasks = seqOrderToTasks.get(sortedSeqOrders[sortedSeqOrders.length - 1]);
     parentTask.dependsOnTaskIDs = [...parentTask.dependsOnTaskIDs, ...highestSeqOrderTasks.map((task) => task.taskID)];
+    const incompleteTaskIDs = taskDB.incompleteTasksInTree(taskID).map((t) => t.taskID);
     const res = {
         taskUpdated: toBasicTaskInfo(parentTask, false, false, false),
         tasksCreated: createdTasks.map((t) => toBasicTaskInfo(t, false, false, true)),
+        incompleteTasksIdealOrder: singleAgent ? incompleteTaskIDs : undefined,
     };
     return {
         content: [

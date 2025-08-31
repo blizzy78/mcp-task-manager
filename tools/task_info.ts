@@ -19,7 +19,7 @@ export const taskInfoTool = {
   inputSchema: zodToJsonSchema(TaskInfoArgsSchema),
 }
 
-export async function handleTaskInfo({ taskIDs }: TaskInfoArgs, taskDB: TaskDB) {
+export async function handleTaskInfo({ taskIDs }: TaskInfoArgs, taskDB: TaskDB, singleAgent: boolean) {
   const tasks = new Array<Task>()
   const notFoundTaskIDs = new Array<TaskID>()
 
@@ -33,7 +33,14 @@ export async function handleTaskInfo({ taskIDs }: TaskInfoArgs, taskDB: TaskDB) 
     tasks.push(task)
   }
 
-  const res = { tasks, notFoundTasks: notFoundTaskIDs }
+  const incompleteTaskIDs =
+    notFoundTaskIDs.length === 0 ? taskDB.incompleteTasksInTree(taskIDs[0]).map((t) => t.taskID) : undefined
+
+  const res = {
+    tasks,
+    notFoundTasks: notFoundTaskIDs,
+    incompleteTasksIdealOrder: singleAgent ? incompleteTaskIDs : undefined,
+  }
 
   return {
     content: [],

@@ -57,7 +57,12 @@ export async function handleCreateTask(
     taskDB.setCurrentTask(task.taskID)
   }
 
-  const res = { taskCreated: toBasicTaskInfo(task, false, false, true) }
+  const incompleteTaskIDs = taskDB.incompleteTasksInTree(task.taskID).map((t) => t.taskID)
+
+  const res = {
+    taskCreated: toBasicTaskInfo(task, false, false, true),
+    incompleteTasksIdealOrder: singleAgent ? incompleteTaskIDs : undefined,
+  }
 
   return {
     content: [

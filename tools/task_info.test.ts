@@ -41,7 +41,7 @@ describe('task_info tool handler', () => {
         taskIDs: [taskID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.content).toEqual([])
       expect(result.structuredContent).toMatchObject({
@@ -57,7 +57,7 @@ describe('task_info tool handler', () => {
         taskIDs: [nonExistentID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.structuredContent).toMatchObject({
         tasks: [],
@@ -120,7 +120,7 @@ describe('task_info tool handler', () => {
         taskIDs: [task1ID, task2ID, task3ID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.structuredContent.tasks).toHaveLength(3)
       expect(result.structuredContent.notFoundTasks).toHaveLength(0)
@@ -154,7 +154,7 @@ describe('task_info tool handler', () => {
         taskIDs: [existingTaskID, nonExistentID1, nonExistentID2],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.structuredContent.tasks).toHaveLength(1)
       expect(result.structuredContent.tasks[0]).toEqual(existingTask)
@@ -172,7 +172,7 @@ describe('task_info tool handler', () => {
         taskIDs: [nonExistentID1, nonExistentID2, nonExistentID3],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.structuredContent.tasks).toHaveLength(0)
       expect(result.structuredContent.notFoundTasks).toHaveLength(3)
@@ -233,7 +233,7 @@ describe('task_info tool handler', () => {
         taskIDs: [taskID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       const returnedTask = result.structuredContent.tasks[0]
 
@@ -276,7 +276,7 @@ describe('task_info tool handler', () => {
         taskIDs: [taskID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       const returnedTask = result.structuredContent.tasks[0]
 
@@ -343,7 +343,7 @@ describe('task_info tool handler', () => {
         taskIDs: [task3ID, task1ID, task2ID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.structuredContent.tasks).toHaveLength(3)
       expect(result.structuredContent.tasks[0].taskID).toBe(task3ID)
@@ -374,7 +374,7 @@ describe('task_info tool handler', () => {
         taskIDs: [taskID, taskID, taskID], // Same ID multiple times
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       // Should return the task multiple times as requested
       expect(result.structuredContent.tasks).toHaveLength(3)
@@ -407,7 +407,7 @@ describe('task_info tool handler', () => {
         taskIDs: [existingTaskID, nonExistentID, existingTaskID, nonExistentID],
       }
 
-      const result = await handleTaskInfo(args, taskDB)
+      const result = await handleTaskInfo(args, taskDB, false)
 
       expect(result.structuredContent.tasks).toHaveLength(2)
       expect(result.structuredContent.tasks[0]).toEqual(existingTask)
