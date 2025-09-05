@@ -49,7 +49,7 @@ describe('current_task tool handler', () => {
       expect(result.content).toHaveLength(1)
       expect(result.content[0]).toMatchObject({
         type: 'text',
-        text: "Use 'task_info' to retrieve full task details",
+        text: "Use 'task_info' tool to retrieve full task details",
         audience: ['assistant'],
       })
 

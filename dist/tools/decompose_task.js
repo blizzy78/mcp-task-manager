@@ -24,7 +24,7 @@ Tasks MUST be in todo status to be decomposed.
 Subtasks with the same sequence order may be executed in parallel.
 Subtasks should include a verification subtask.
 Created subtasks may be decomposed later if needed.`,
-    inputSchema: zodToJsonSchema(DecomposeTaskArgsSchema),
+    inputSchema: zodToJsonSchema(DecomposeTaskArgsSchema, { $refStrategy: 'none' }),
 };
 export async function handleDecomposeTask({ taskID, subtasks }, taskDB, singleAgent) {
     const parentTask = taskDB.get(taskID);
@@ -82,7 +82,7 @@ export async function handleDecomposeTask({ taskID, subtasks }, taskDB, singleAg
             createdTasks.some((t) => mustDecompose(t)) &&
                 {
                     type: 'text',
-                    text: 'Some tasks must be decomposed before execution',
+                    text: "Some tasks must be decomposed before execution, use 'decompose_task' tool",
                     audience: ['assistant'],
                 },
         ].filter(Boolean),

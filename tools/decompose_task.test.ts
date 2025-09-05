@@ -484,7 +484,7 @@ describe('decompose_task tool handler', () => {
       expect(result.content).toHaveLength(1)
       expect(result.content[0]).toMatchObject({
         type: 'text',
-        text: 'Some tasks must be decomposed before execution',
+        text: "Some tasks must be decomposed before execution, use 'decompose_task' tool",
         audience: ['assistant'],
       })
     })

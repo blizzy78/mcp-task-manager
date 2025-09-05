@@ -14,7 +14,7 @@ export const currentTaskTool = {
   name: CURRENT_TASK,
   title: 'Get current task',
   description: 'Returns a list of tasks that are currently in progress.',
-  inputSchema: zodToJsonSchema(CurrentTaskArgsSchema),
+  inputSchema: zodToJsonSchema(CurrentTaskArgsSchema, { $refStrategy: 'none' }),
 }
 
 export async function handleCurrentTask(_: CurrentTaskArgs, taskDB: TaskDB) {
@@ -42,7 +42,7 @@ export async function handleCurrentTask(_: CurrentTaskArgs, taskDB: TaskDB) {
     content: [
       {
         type: 'text',
-        text: "Use 'task_info' to retrieve full task details",
+        text: "Use 'task_info' tool to retrieve full task details",
         audience: ['assistant'],
       } satisfies TextContent,
     ],

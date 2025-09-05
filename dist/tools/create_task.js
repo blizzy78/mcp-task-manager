@@ -11,7 +11,7 @@ export const createTaskTool = {
 If decomposing a complex task is required, must use 'decompose_task' first before executing it.
 All tasks start in the todo status.
 Must use 'update_task' before executing this task, and when executing this task has finished.`,
-    inputSchema: zodToJsonSchema(CreateTaskArgsSchema),
+    inputSchema: zodToJsonSchema(CreateTaskArgsSchema, { $refStrategy: 'none' }),
 };
 export async function handleCreateTask({ title, description, goal, definitionsOfDone, criticalPath, uncertaintyAreas, estimatedComplexity }, taskDB, singleAgent) {
     const task = {
@@ -42,7 +42,7 @@ export async function handleCreateTask({ title, description, goal, definitionsOf
             mustDecompose(task) &&
                 {
                     type: 'text',
-                    text: 'Task must be decomposed before execution',
+                    text: "Task must be decomposed before execution, use 'decompose_task' tool",
                     audience: ['assistant'],
                 },
             {

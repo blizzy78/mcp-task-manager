@@ -85,7 +85,7 @@ export const updateTaskTool = {
 Must use this tool before executing tasks, and when finished executing tasks.
 Should always include lessons learned to inform future tasks.
 Important: Always update multiple tasks in a single call if dependencies allow it.`,
-  inputSchema: zodToJsonSchema(UpdateTaskArgsSchema),
+  inputSchema: zodToJsonSchema(UpdateTaskArgsSchema, { $refStrategy: 'none' }),
 }
 
 export async function handleUpdateTask({ tasks }: UpdateTaskArgs, taskDB: TaskDB, singleAgent: boolean) {

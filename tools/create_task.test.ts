@@ -84,7 +84,7 @@ describe('create_task tool handler', () => {
       expect(result.content).toHaveLength(2)
       expect(result.content[0]).toMatchObject({
         type: 'text',
-        text: 'Task must be decomposed before execution',
+        text: "Task must be decomposed before execution, use 'decompose_task' tool",
         audience: ['assistant'],
       })
     })
@@ -108,7 +108,7 @@ describe('create_task tool handler', () => {
       expect(result.structuredContent.taskCreated.mustDecomposeBeforeExecution).toBe(true)
       expect(result.content).toHaveLength(2)
       expect(result.content[0]).toMatchObject({
-        text: 'Task must be decomposed before execution',
+        text: "Task must be decomposed before execution, use 'decompose_task' tool",
       })
     })
 

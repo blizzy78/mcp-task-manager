@@ -16,7 +16,7 @@ export const taskInfoTool = {
   name: TASK_INFO,
   title: 'Get task info',
   description: 'Returns full details for requested tasks',
-  inputSchema: zodToJsonSchema(TaskInfoArgsSchema),
+  inputSchema: zodToJsonSchema(TaskInfoArgsSchema, { $refStrategy: 'none' }),
 }
 
 export async function handleTaskInfo({ taskIDs }: TaskInfoArgs, taskDB: TaskDB, singleAgent: boolean) {
