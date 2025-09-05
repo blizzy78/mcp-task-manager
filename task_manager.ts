@@ -11,7 +11,7 @@ import { toolHandlers, tools } from './tools/index.js'
 const serverInfo = {
   name: 'task-manager',
   title: 'Task Manager',
-  version: '0.12.0',
+  version: '0.12.1',
 }
 
 export function createServer() {
